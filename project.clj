@@ -5,7 +5,8 @@
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.12.0"]
                  [cheshire "6.0.0"]
-                 [clj-http "3.13.0"]]
+                 [clj-http "3.13.0"]
+                 [org.clojure/tools.cli "1.1.230"]]
   :main genko.core
   :aot :all
   :repl-options {:init-ns genko.core})
