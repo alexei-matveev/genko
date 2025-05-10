@@ -74,7 +74,6 @@
     (println "Summary:")
     (println summary)
     (println "Errors:" errors)
-    (cond
-      (seq errors) (println "Errors:"
-                            (str/join \newline errors))
-      :else (chat-with-user options))))
+    (if-not (seq errors)
+      (chat-with-user options)
+      (println "Errors:" (str/join \newline errors)))))
