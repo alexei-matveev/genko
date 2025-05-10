@@ -8,9 +8,9 @@
 
 (defn- api-call
   "Call OpenAI API"
-  [config endpoint body]
-  (let [api-key (:api-key config)
-        base-url (:base-url config)
+  [options endpoint body]
+  (let [api-key (:api-key options)
+        base-url (:base-url options)
         ;; Endpoint ist supposed to start with Slash:
         url (str base-url endpoint)
         headers {"Authorization" (str "Bearer " api-key)
@@ -24,13 +24,13 @@
 ;; single prompt.
 (defn- chat-completion
   "Call OpenAI Chat Completion API with a list of messages as context.
-  `config` is a map with :api-key, :base-url, and :model. `messages` is a list
+  `options` is a map with :api-key, :base-url, and :model. `messages` is a list
   of message maps, e.g. [{:role \"user\" :content \"Hello\"}]."
-  [config messages]
-  (let [model (:model config)
+  [options messages]
+  (let [model (:model options)
         body {:model model
               :messages messages}
-        result (api-call config "/chat/completions" body)]
+        result (api-call options "/chat/completions" body)]
     (get-in result [:choices 0 :message :content])))
 
 
@@ -39,7 +39,7 @@
   extends context, and prints responses.  Conversation ends when the
   user enters an empty prompt.  Initializes messages with a system
   prompt."
-  [config]
+  [options]
   (let [system-prompt "You are a helpful assistant. Reply in Markdown!"
         system-message {:role "system"
                         :content system-prompt}]
@@ -51,7 +51,7 @@
           (let [new-messages (conj
                               messages {:role "user"
                                         :content prompt})
-                response (chat-completion config new-messages)
+                response (chat-completion options new-messages)
                 updated-messages (conj new-messages
                                        {:role "assistant"
                                         :content response})]
