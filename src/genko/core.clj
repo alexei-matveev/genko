@@ -24,11 +24,14 @@
 
 
 (defn chat-with-user
-  "Interactive chat loop: repeatedly reads user input, extends context, and prints responses.
-  Conversation ends when the user enters an empty prompt.  Initializes
-  messages with a system prompt."
+  "Interactive chat loop: repeatedly reads user input,
+  extends context, and prints responses.  Conversation ends when the
+  user enters an empty prompt.  Initializes messages with a system
+  prompt."
   [config]
-  (let [system-message {:role "system" :content "You are a helpful assistant."}]
+  (let [system-prompt "You are a helpful assistant. Reply in Markdown!"
+        system-message {:role "system"
+                        :content system-prompt}]
     (loop [messages [system-message]]
       (print "Enter your prompt: ")
       (flush)
@@ -48,4 +51,3 @@
   (let [config {:api-key (System/getenv "OPENAI_API_KEY")
                 :base-url (System/getenv "OPENAI_API_BASE_URL")}]
     (chat-with-user config)))
-
