@@ -25,19 +25,21 @@
 
 (defn chat-with-user
   "Interactive chat loop: repeatedly reads user input, extends context, and prints responses.
-  Conversation ends when the user enters an empty prompt."
+  Conversation ends when the user enters an empty prompt.
+  Initializes messages with a system prompt."
   [config]
-  (loop [messages []]
-    (print "Enter your prompt: ")
-    (flush)
-    (let [prompt (read-line)]
-      (if (clojure.string/blank? prompt)
-        (println "Exiting chat.")
-        (let [new-messages (conj messages {:role "user" :content prompt})
-              response (chat-completion config new-messages)
-              updated-messages (conj new-messages {:role "assistant" :content response})]
-          (println "OpenAI response:\n" response)
-          (recur updated-messages))))))
+  (let [system-message {:role "system" :content "You are a helpful assistant."}]
+    (loop [messages [system-message]]
+      (print "Enter your prompt: ")
+      (flush)
+      (let [prompt (read-line)]
+        (if (clojure.string/blank? prompt)
+          (println "Exiting chat.")
+          (let [new-messages (conj messages {:role "user" :content prompt})
+                response (chat-completion config new-messages)
+                updated-messages (conj new-messages {:role "assistant" :content response})]
+            (println "OpenAI response:\n" response)
+            (recur updated-messages)))))))
 
 
 (defn -main
