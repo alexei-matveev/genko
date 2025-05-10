@@ -2,7 +2,8 @@
   (:require
    [cheshire.core :as json]
    [clj-http.client :as client]
-   [clojure.string :as string]))
+   [clojure.string :as string])
+  (:gen-class))
 
 
 ;; chat-completion now takes a list of messages as context, not just a single prompt.
