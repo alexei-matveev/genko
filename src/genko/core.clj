@@ -6,10 +6,10 @@
 ;; chat-completion now takes a list of messages as context, not just a single prompt.
 (defn chat-completion
   "Call OpenAI Chat Completion API with a list of messages as context.
-  `config` is a map with :api-key and :base-url.  `messages` is a list
+  `config` is a map with :api-key, :base-url, and :model. `messages` is a list
   of message maps, e.g. [{:role \"user\" :content \"Hello\"}]."
   [config messages]
-  (let [model "gpt-4o"
+  (let [model (:model config)
         api-key (:api-key config)
         base-url (:base-url config)
         url (str base-url "/chat/completions")
@@ -49,5 +49,6 @@
   "Main entry point."
   [& _]
   (let [config {:api-key (System/getenv "OPENAI_API_KEY")
-                :base-url (System/getenv "OPENAI_API_BASE_URL")}]
+                :base-url (System/getenv "OPENAI_API_BASE_URL")
+                :model "gpt-4o"}]
     (chat-with-user config)))
