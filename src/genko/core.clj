@@ -1,6 +1,8 @@
 (ns genko.core
-  (:require [clj-http.client :as client]
-            [cheshire.core :as json]))
+  (:require
+   [cheshire.core :as json]
+   [clj-http.client :as client]
+   [clojure.string :as string]))
 
 
 ;; chat-completion now takes a list of messages as context, not just a single prompt.
@@ -36,7 +38,7 @@
       (print "Enter your prompt: ")
       (flush)
       (let [prompt (read-line)]
-        (if (clojure.string/blank? prompt)
+        (if (string/blank? prompt)
           (println "Exiting chat.")
           (let [new-messages (conj messages {:role "user" :content prompt})
                 response (chat-completion config new-messages)
