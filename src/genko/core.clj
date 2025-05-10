@@ -47,11 +47,14 @@
       (print "USER: ")
       (flush)
       (let [prompt (read-line)]
-        (if (str/blank? prompt)
-          (println "Exiting chat.")
-          (let [new-messages (conj messages {:role "user" :content prompt})
+        (if-not (str/blank? prompt)
+          (let [new-messages (conj
+                              messages {:role "user"
+                                        :content prompt})
                 response (chat-completion config new-messages)
-                updated-messages (conj new-messages {:role "assistant" :content response})]
+                updated-messages (conj new-messages
+                                       {:role "assistant"
+                                        :content response})]
             (println "ASSISTANT:" response)
             (recur updated-messages)))))))
 
