@@ -46,9 +46,13 @@
 
 
 (defn -main
-  "Main entry point."
-  [& _]
-  (let [config {:api-key (System/getenv "OPENAI_API_KEY")
-                :base-url (System/getenv "OPENAI_API_BASE_URL")
-                :model "gpt-4o"}]
+  "Main entry point. Takes optional model name as first argument."
+  [& args]
+  (let [default-config {:api-key (System/getenv "OPENAI_API_KEY")
+                        :base-url (System/getenv "OPENAI_API_BASE_URL")
+                        :model "gpt-4o"}
+        config (if (seq args)
+                 (assoc default-config :model (first args))
+                 default-config)]
+    (println "config:" config)
     (chat-with-user config)))
