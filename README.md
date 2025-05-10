@@ -1,19 +1,23 @@
-# genko
+# Genko
 
-Genko is a simple Clojure command-line tool for interactive chat with
-OpenAI's GPT models. It maintains conversation context and supports
-multi-turn dialogue using the OpenAI Chat Completion API.
+Genko is a simple command-line tool for interactive chat with language
+models or other servers supporting OpenAI's protocoll. It maintains
+conversation context and supports multi-turn dialogue.
 
-And while doing that we learn the limits of Copilot.
+Foremost it is a project to learn the limits of Copilot for Clojure.
 
 ## Usage
 
-There is not default for `OPENAI_API_BASE_URL`, so you need to set
-both:
+There is no default for `OPENAI_API_BASE_URL`, so you need to set
+both environment variables:
 
     $ OPENAI_API_BASE_URL=https://api.example.com/v1
     $ OPENAI_API_KEY=...
     $ lein run
+
+Build executable in `./bin/genko`:
+
+    $ just build
 
 ## License
 
