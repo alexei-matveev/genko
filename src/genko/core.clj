@@ -6,8 +6,8 @@
 ;; chat-completion now takes a list of messages as context, not just a single prompt.
 (defn chat-completion
   "Call OpenAI Chat Completion API with a list of messages as context.
-  `config` is a map with :api-key and :base-url.
-  `messages` is a list of message maps, e.g. [{:role \"user\" :content \"Hello\"}]."
+  `config` is a map with :api-key and :base-url.  `messages` is a list
+  of message maps, e.g. [{:role \"user\" :content \"Hello\"}]."
   [config messages]
   (let [model "gpt-4o"
         api-key (:api-key config)
@@ -16,8 +16,8 @@
         headers {"Authorization" (str "Bearer " api-key)
                  "Content-Type" "application/json"}
         body (json/generate-string
-               {:model model
-                :messages messages})
+              {:model model
+               :messages messages})
         response (client/post url {:headers headers :body body})
         result (json/parse-string (:body response) true)]
     (get-in result [:choices 0 :message :content])))
@@ -25,8 +25,8 @@
 
 (defn chat-with-user
   "Interactive chat loop: repeatedly reads user input, extends context, and prints responses.
-  Conversation ends when the user enters an empty prompt.
-  Initializes messages with a system prompt."
+  Conversation ends when the user enters an empty prompt.  Initializes
+  messages with a system prompt."
   [config]
   (let [system-message {:role "system" :content "You are a helpful assistant."}]
     (loop [messages [system-message]]
