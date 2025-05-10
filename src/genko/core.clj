@@ -69,11 +69,11 @@
                      [nil "--api-key API-KEY" "API key"
                       :default (System/getenv "OPENAI_API_KEY")]]
         {:keys [options arguments summary errors]} (cli/parse-opts args cli-options)]
-    (println "Options:" options)
-    (println "Arguments:" arguments)
-    (println "Summary:")
-    (println summary)
-    (println "Errors:" errors)
+    ;; (println "Options:" options)
+    ;; (println "Arguments:" arguments)
+    ;; (println "Summary:")
+    ;; (println summary)
+    ;; (println "Errors:" errors)
     (if-not (seq errors)
       (chat-with-user options)
       (println "Errors:" (str/join \newline errors)))))
