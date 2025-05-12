@@ -3,7 +3,9 @@
    [cheshire.core :as json]
    [clj-http.client :as client]
    [clojure.string :as str]
-   [clojure.tools.cli :as cli])
+   [clojure.tools.cli :as cli]
+   [clojure.edn :as edn]
+   [clojure.java.io :as io])
   (:gen-class))
 
 (defn- api-call
@@ -58,6 +60,27 @@
             (println "ASSISTANT:" response)
             (recur updated-messages)))))))
 
+
+;; Sometimes it is more conventient to supply connections details in a
+;; file:
+(defn- read-config-file
+  "Reads EDN config from ~/.genkorc.edn if it exists, returns a map or {}."
+  []
+  (let [file (io/file (System/getenv "HOME") ".genkorc.edn")]
+    (if (.exists file)
+      (edn/read-string (slurp file))
+      {})))
+
+(defn- llm-apply
+  ([prompt] (llm-apply prompt []))
+  ([prompt context]
+   (let [messages (conj context {:role "user" :content prompt})
+         options (read-config-file)]
+     (chat-completion options messages))))
+
+(comment
+  ;; => "The capital of France is Paris."
+  (llm-apply "What is the capital of France?"))
 
 (defn -main [& args]
   ;; NOTE: API key leaks to stdout on CLI parsing errors if
