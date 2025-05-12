@@ -80,7 +80,12 @@
 
 (comment
   ;; => "The capital of France is Paris."
-  (llm-apply "What is the capital of France?"))
+  (llm-apply "What is the capital of France?")
+
+  ;; => "Genko is a simple command-line tool designed ..."
+  (let [readme (slurp "README.md")
+        prompt (str "Summarize the following text:\n" readme)]
+    (llm-apply prompt)))
 
 (defn -main [& args]
   ;; NOTE: API key leaks to stdout on CLI parsing errors if
