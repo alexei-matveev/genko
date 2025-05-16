@@ -83,38 +83,44 @@
 (defn- chat-with-user
   "Interactive chat loop: repeatedly reads user input,
   extends context, and prints responses.  Conversation ends when the
-  user enters an empty prompt.  Initializes messages with a system
-  prompt."
-  [options messages]
+  user enters an empty prompt."
+  [options turn messages]
 
-  (print "USER: ")
-  (flush)
-  (let [prompt (read-line)]
-    (if-not (str/blank? prompt)
-      (let [messages (conj messages {:role "user"
-                                     :content prompt})
+  (case turn
+    ;; User turn.
+    :user
+    (do
+      (print "USER: ")
+      (flush)
+      (let [prompt (read-line)]
+        (if (str/blank? prompt)
+          messages
+          (let [messages (conj messages {:role "user"
+                                         :content prompt})]
+            (recur options :assistant messages)))))
 
-            ;; Actuall LLM call here:
-            response (chat-completion options messages)
+    ;; Assistant turn. Actuall LLM call here.
+    :assistant
+    (let [response (chat-completion options messages)
 
-            ;; We must keep the response of the model for it to be
-            ;; fully context aware:
-            messages (conj messages response)
+          ;; We must keep the response of the model for it to be fully
+          ;; context aware:
+          messages (conj messages response)
 
-            ;; An assistant message with 'tool_calls' must be
-            ;; followed by tool messages responding to each
-            ;; 'tool_call_id'. Ideally one would need to ask the
-            ;; consent of the user to execute tools.
-            messages (if-let [tool-calls (seq (:tool_calls response))]
-                       (into messages
-                             (for [tool-call tool-calls]
-                               {:role "tool"
-                                :name (:name (:function tool-call))
-                                :tool_call_id (:id tool-call)
-                                :content "Error!"}))
-                       messages)]
-        (println "ASSISTANT:" (:content response))
-        (recur options messages)))))
+          ;; An assistant message with `tool_calls` must be followed
+          ;; by tool messages responding to each `tool_call_id`.
+          ;; Ideally one would need to ask the consent of the user to
+          ;; execute tools.
+          messages (if-let [tool-calls (seq (:tool_calls response))]
+                     (into messages
+                           (for [tool-call tool-calls]
+                             {:role "tool"
+                              :name (:name (:function tool-call))
+                              :tool_call_id (:id tool-call)
+                              :content "Error!"}))
+                     messages)]
+      (println "ASSISTANT:" (:content response))
+      (recur options :user messages))))
 
 
 ;; Sometimes it is more conventient to supply connections details in a
@@ -165,6 +171,7 @@
     ;; (println "Errors:" errors)
     (if-not (seq errors)
       (chat-with-user options
+                      :user
                       [{:role "system"
                         :content "You are a helpful assistant. Reply in Markdown!"}])
       (println "Errors:" (str/join \newline errors)))))
