@@ -105,22 +105,24 @@
 
           ;; We must keep the response of the model for it to be fully
           ;; context aware:
-          messages (conj messages response)
+          messages (conj messages response)]
 
-          ;; An assistant message with `tool_calls` must be followed
-          ;; by tool messages responding to each `tool_call_id`.
-          ;; Ideally one would need to ask the consent of the user to
-          ;; execute tools.
-          messages (if-let [tool-calls (seq (:tool_calls response))]
-                     (into messages
-                           (for [tool-call tool-calls]
-                             {:role "tool"
-                              :name (:name (:function tool-call))
-                              :tool_call_id (:id tool-call)
-                              :content "Error!"}))
-                     messages)]
-      (println "ASSISTANT:" (:content response))
-      (recur options :user messages))))
+      ;; An assistant message with `tool_calls` must be followed by
+      ;; tool messages responding to each `tool_call_id`.  Ideally one
+      ;; would need to ask the consent of the user to execute tools.
+      (if-let [tool-calls (seq (:tool_calls response))]
+        (let [messages (into messages
+                             (for [tool-call tool-calls]
+                               {:role "tool"
+                                :name (:name (:function tool-call))
+                                :tool_call_id (:id tool-call)
+                                :content "Error!"}))]
+          ;; FIXME: potentially infinite recursion here if LLM never
+          ;; stops calling tools!
+          (recur options :assistant messages))
+        (do
+          (println "ASSISTANT:" (:content response))
+          (recur options :user messages))))))
 
 
 ;; Sometimes it is more conventient to supply connections details in a
