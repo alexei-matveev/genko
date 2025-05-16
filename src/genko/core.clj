@@ -55,7 +55,8 @@
               :messages messages
               :tools tools}
         result (api-call options "/chat/completions" body)]
-    (pp/pprint {:Q body :A result})
+    (if (:verbose options)
+      (pp/pprint {:Q body :A result}))
     (get-in result [:choices 0 :message])))
 
 ;; (chat-completion ...) Kann unterschiedliche Strukturen
@@ -148,13 +149,18 @@
 (defn -main [& args]
   ;; NOTE: API key leaks to stdout on CLI parsing errors if
   ;; OPENAI_API_KEY is set:
-  (let [cli-options [[nil "--model MODEL" "Language model"
+  (let [cli-options [["-v" "--verbose" "Enable verbose mode"
+                      :default false]
+                     [nil "--model MODEL" "Language model"
                       :default "gpt-4o"]
                      [nil "--base-url BASE-URL" "Base URL"
                       :default (System/getenv "OPENAI_API_BASE_URL")]
                      [nil "--api-key API-KEY" "API key"
                       :default (System/getenv "OPENAI_API_KEY")]]
-        {:keys [options arguments summary errors]} (cli/parse-opts args cli-options)]
+        cli-parsed (cli/parse-opts args cli-options)
+        {:keys [options arguments summary errors]} cli-parsed]
+    (if (:verbose options)
+      (pp/pprint cli-parsed))
     ;; (println "Options:" options)
     ;; (println "Arguments:" arguments)
     ;; (println "Summary:")
