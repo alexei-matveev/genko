@@ -5,7 +5,8 @@
    [clojure.string :as str]
    [clojure.tools.cli :as cli]
    [clojure.edn :as edn]
-   [clojure.java.io :as io])
+   [clojure.java.io :as io]
+   [clojure.pprint :as pp])
   (:gen-class))
 
 (defn- api-call
@@ -22,6 +23,26 @@
         result (json/parse-string (:body response) true)]
     result))
 
+
+;; Siehe Function Calling [1]. Ist die Doku fehelrhaft? Dort fehlt die
+;; Struktur [{:type  "function", :function {...}}].  Dies widerspricht
+;; zum Beispiel  dem Cookbook  Beispiel [2].  Nicht jedes  Modell kann
+;; Tools. Noch weniger können es gut.
+;;
+;; [1] https://platform.openai.com/docs/guides/function-calling
+;; [2] https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models
+(def tools
+  [{:type "function"
+    :function                           ; fehlt in Doku [1]
+    {:name "get_weather"
+     :description "Get current temperature for a given location."
+     :parameters {:type "object"
+                  :properties {:location {:type "string"
+                                          :description "City and country e.g. Bogotá, Colombia"}}
+                  :required ["location"]
+                  :additionalProperties false}}}])
+
+
 ;; chat-completion now takes a list of messages as context, not just a
 ;; single prompt.
 (defn- chat-completion
@@ -31,9 +52,31 @@
   [options messages]
   (let [model (:model options)
         body {:model model
-              :messages messages}
+              :messages messages
+              :tools tools}
         result (api-call options "/chat/completions" body)]
-    (get-in result [:choices 0 :message :content])))
+    (pp/pprint {:Q body :A result})
+    (get-in result [:choices 0 :message])))
+
+;; (chat-completion ...) Kann unterschiedliche Strukturen
+;; liefern. Hier zwei relevante Fälle:
+(comment
+  ;; 1. Regelfall:
+  {:content "I am an AI-powered assistant.",
+   :role "assistant",
+   :tool_calls nil,
+   :function_call nil,
+   :annotations []}
+
+  ;; 2. Tool Call:
+  {:content nil,
+   :role "assistant",
+   :tool_calls [{:function {:name "get_weather",
+                            :arguments "{\"location\":\"Berlin, Germany\"}"},
+                 :id "call_xyz",
+                 :type "function"}],
+   :function_call nil,
+   :annotations []})
 
 
 (defn- chat-with-user
@@ -50,15 +93,30 @@
       (flush)
       (let [prompt (read-line)]
         (if-not (str/blank? prompt)
-          (let [new-messages (conj
-                              messages {:role "user"
-                                        :content prompt})
-                response (chat-completion options new-messages)
-                updated-messages (conj new-messages
-                                       {:role "assistant"
-                                        :content response})]
-            (println "ASSISTANT:" response)
-            (recur updated-messages)))))))
+          (let [messages (conj messages {:role "user"
+                                         :content prompt})
+
+                ;; Actuall LLM call here:
+                response (chat-completion options messages)
+
+                ;; We must keep the response of the model for it to be
+                ;; fully context aware:
+                messages (conj messages response)
+
+                ;; An assistant message with 'tool_calls' must be
+                ;; followed by tool messages responding to each
+                ;; 'tool_call_id'. Ideally one would need to ask the
+                ;; consent of the user to execute tools.
+                messages (if-let [tool-calls (seq (:tool_calls response))]
+                           (into messages
+                                 (for [tool-call tool-calls]
+                                   {:role "tool"
+                                    :name (:name (:function tool-call))
+                                    :tool_call_id (:id tool-call)
+                                    :content "Error!"}))
+                           messages)]
+            (println "ASSISTANT:" (:content response))
+            (recur messages)))))))
 
 
 ;; Sometimes it is more conventient to supply connections details in a
