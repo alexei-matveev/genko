@@ -86,43 +86,45 @@
   user enters an empty prompt."
   [options turn messages]
 
-  (case turn
-    ;; User turn.
-    :user
-    (do
-      (print "USER: ")
-      (flush)
-      (let [prompt (read-line)]
-        (if (str/blank? prompt)
-          messages
-          (let [messages (conj messages {:role "user"
-                                         :content prompt})]
-            (recur options :assistant messages)))))
+  (loop [turn turn
+         messages messages]
+    (case turn
+      ;; User turn.
+      :user
+      (do
+        (print "USER: ")
+        (flush)
+        (let [prompt (read-line)]
+          (if (str/blank? prompt)
+            messages
+            (let [messages (conj messages {:role "user"
+                                           :content prompt})]
+              (recur :assistant messages)))))
 
-    ;; Assistant turn. Actuall LLM call here.
-    :assistant
-    (let [response (chat-completion options messages)
+      ;; Assistant turn. Actuall LLM call here.
+      :assistant
+      (let [response (chat-completion options messages)
 
-          ;; We must keep the response of the model for it to be fully
-          ;; context aware:
-          messages (conj messages response)]
+            ;; We must keep the response of the model for it to be fully
+            ;; context aware:
+            messages (conj messages response)]
 
-      ;; An assistant message with `tool_calls` must be followed by
-      ;; tool messages responding to each `tool_call_id`.  Ideally one
-      ;; would need to ask the consent of the user to execute tools.
-      (if-let [tool-calls (seq (:tool_calls response))]
-        (let [messages (into messages
-                             (for [tool-call tool-calls]
-                               {:role "tool"
-                                :name (:name (:function tool-call))
-                                :tool_call_id (:id tool-call)
-                                :content "Error!"}))]
-          ;; FIXME: potentially infinite recursion here if LLM never
-          ;; stops calling tools!
-          (recur options :assistant messages))
-        (do
-          (println "ASSISTANT:" (:content response))
-          (recur options :user messages))))))
+        ;; An assistant message with `tool_calls` must be followed by
+        ;; tool messages responding to each `tool_call_id`.  Ideally one
+        ;; would need to ask the consent of the user to execute tools.
+        (if-let [tool-calls (seq (:tool_calls response))]
+          (let [messages (into messages
+                               (for [tool-call tool-calls]
+                                 {:role "tool"
+                                  :name (:name (:function tool-call))
+                                  :tool_call_id (:id tool-call)
+                                  :content "Error!"}))]
+            ;; FIXME: potentially infinite recursion here if LLM never
+            ;; stops calling tools!
+            (recur :assistant messages))
+          (do
+            (println "ASSISTANT:" (:content response))
+            (recur :user messages)))))))
 
 
 ;; Sometimes it is more conventient to supply connections details in a
