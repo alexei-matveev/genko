@@ -14,7 +14,7 @@
   [options endpoint body]
   (let [api-key (:api-key options)
         base-url (:base-url options)
-        ;; Endpoint ist supposed to start with Slash:
+        ;; Endpoint is supposed to start with slash:
         url (str base-url endpoint)
         headers {"Authorization" (str "Bearer " api-key)
                  "Content-Type" "application/json"}
@@ -24,16 +24,16 @@
     result))
 
 
-;; Siehe Function Calling [1]. Ist die Doku fehelrhaft? Dort fehlt die
-;; Struktur [{:type  "function", :function {...}}].  Dies widerspricht
-;; zum Beispiel  dem Cookbook  Beispiel [2].  Nicht jedes  Modell kann
-;; Tools. Noch weniger können es gut.
+;; See  Function Calling  [1].  Is  the documentation  incorrect?  The
+;; structure [{:type "function", :function  {...}}]  is missing there.
+;; This contradicts for  example the Cookbook example  [2].  Not every
+;; model can tools. Even fewer can do it well.
 ;;
 ;; [1] https://platform.openai.com/docs/guides/function-calling
 ;; [2] https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models
 (def tools
   [{:type "function"
-    :function                           ; fehlt in Doku [1]
+    :function                           ; missing in doc [1]
     {:name "get_weather"
      :description "Get current temperature for a given location."
      :parameters {:type "object"
@@ -59,7 +59,7 @@
       (pp/pprint {:Q body :A result}))
     (get-in result [:choices 0 :message])))
 
-;; (chat-completion ...) Kann unterschiedliche Strukturen
+;; (chat-completion ...)  Kann unterschiedliche Strukturen
 ;; liefern. Hier zwei relevante Fälle:
 (comment
   ;; 1. Regelfall:
