@@ -34,6 +34,9 @@
 ;; identical to the list of tools as in manual [1]. We derive the list
 ;; from the map when calling LLM later.
 ;;
+;; Keys need to be strings, as this is how they come from LLM. We will
+;; use these strings to look code up. Snake case seems to work too.
+;;
 ;; [1] https://platform.openai.com/docs/guides/function-calling
 ;; [2] https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models
 (def tool-map
@@ -61,8 +64,8 @@
                           :additionalProperties false}}}})
 
 
-;; chat-completion now takes a list of messages as context, not just a
-;; single prompt.
+;; `chat-completion` now takes a list of messages as context, not just
+;; a single prompt.
 (defn- chat-completion
   "Call OpenAI Chat Completion API with a list of messages as context.
   `options` is a map with :api-key, :base-url, and :model. `messages` is a list
@@ -80,17 +83,17 @@
       (pp/pprint {:Q body :A result}))
     (get-in result [:choices 0 :message])))
 
-;; (chat-completion ...)  Kann unterschiedliche Strukturen
-;; liefern. Hier zwei relevante Fälle:
+;; The output of `chat-completion`, a message, may have different
+;; structure. Here two most relevant cases:
 (comment
-  ;; 1. Regelfall:
+  ;; 1. Text content:
   {:content "I am an AI-powered assistant.",
    :role "assistant",
    :tool_calls nil,
    :function_call nil,
    :annotations []}
 
-  ;; 2. Tool Call:
+  ;; 2. Request for tool calls:
   {:content nil,
    :role "assistant",
    :tool_calls [{:function {:name "get_weather",
