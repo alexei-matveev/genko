@@ -31,16 +31,17 @@
 ;;
 ;; [1] https://platform.openai.com/docs/guides/function-calling
 ;; [2] https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models
-(def tools
-  [{:type "function"
-    :function                           ; missing in doc [1]
-    {:name "get_weather"
-     :description "Get current temperature for a given location."
-     :parameters {:type "object"
-                  :properties {:location {:type "string"
-                                          :description "City and country e.g. Bogotá, Colombia"}}
-                  :required ["location"]
-                  :additionalProperties false}}}])
+(def tool-map
+  {"get_weather"
+   {:callable (fn [arguments]
+                "It is sunny and 24 Celsius!")
+    ;; OpenAI Schema without :name to keep it DRY:
+    :schema {:description "Get current temperature for a given location."
+             :parameters {:type "object"
+                          :properties {:location {:type "string"
+                                                  :description "City and country e.g. Bogotá, Colombia"}}
+                          :required ["location"]
+                          :additionalProperties false}}}})
 
 
 ;; chat-completion now takes a list of messages as context, not just a
@@ -53,7 +54,10 @@
   (let [model (:model options)
         body {:model model
               :messages messages
-              :tools tools}
+              :tools (for [[fn-name fn-map] tool-map
+                           :let [schema (:schema fn-map)]]
+                       {:type "function"
+                        :function (assoc schema :name fn-name)})}
         result (api-call options "/chat/completions" body)]
     (if (:verbose options)
       (pp/pprint {:Q body :A result}))
@@ -115,11 +119,13 @@
         (if-let [tool-calls (seq (:tool_calls response))]
           (let [messages (into messages
                                (for [tool-call tool-calls
-                                     :let [{:keys [id function]} tool-call]]
+                                     :let [{:keys [id function]} tool-call
+                                           {:keys [name arguments]} function
+                                           callable (:callable (tool-map name))]]
                                  {:role "tool"
-                                  :name (:name function)
+                                  :name name
                                   :tool_call_id id
-                                  :content "Error!"}))]
+                                  :content (callable arguments)}))]
             ;; FIXME: potentially infinite recursion here if LLM never
             ;; stops calling tools!
             (recur :assistant messages))
