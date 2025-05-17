@@ -114,10 +114,11 @@
         ;; would need to ask the consent of the user to execute tools.
         (if-let [tool-calls (seq (:tool_calls response))]
           (let [messages (into messages
-                               (for [tool-call tool-calls]
+                               (for [tool-call tool-calls
+                                     :let [{:keys [id function]} tool-call]]
                                  {:role "tool"
-                                  :name (:name (:function tool-call))
-                                  :tool_call_id (:id tool-call)
+                                  :name (:name function)
+                                  :tool_call_id id
                                   :content "Error!"}))]
             ;; FIXME: potentially infinite recursion here if LLM never
             ;; stops calling tools!
