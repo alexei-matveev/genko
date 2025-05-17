@@ -28,7 +28,9 @@
 ;; The  because the  overall structure  [{:type "function",  :function
 ;; {:name  ...}}]   does not  appear  there  as of  2025-05-16.   This
 ;; contradicts the  Cookbook example  [2].  BTW,  not every  model can
-;; tools. Even fewer can do it well.
+;; tools. Even fewer can do it well. Ministral-3B on Azure can also do
+;; some  tool calling,  Phi-4 complains  it  was not  starte with  the
+;; correct flags, however.
 ;;
 ;; Wie want to map Names to schema AND code, so the `tool-map` ist not
 ;; identical to the list of tools as in manual [1]. We derive the list
