@@ -24,17 +24,23 @@
     result))
 
 
-;; See  Function Calling  [1].  Is  the documentation  incorrect?  The
-;; structure [{:type "function", :function  {...}}]  is missing there.
-;; This contradicts for  example the Cookbook example  [2].  Not every
-;; model can tools. Even fewer can do it well.
+;; See  OpenAI function  calling [1].   Is the  documentation correct?
+;; The  because the  overall structure  [{:type "function",  :function
+;; {:name  ...}}]   does not  appear  there  as of  2025-05-16.   This
+;; contradicts the  Cookbook example  [2].  BTW,  not every  model can
+;; tools. Even fewer can do it well.
+;;
+;; Wie want to map Names to schema AND code, so the `tool-map` ist not
+;; identical to the list of tools as in manual [1]. We derive the list
+;; from the map when calling LLM later.
 ;;
 ;; [1] https://platform.openai.com/docs/guides/function-calling
 ;; [2] https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models
 (def tool-map
   {"get_weather"
    {:callable (fn [arguments]
-                "It is sunny and 24 Celsius!")
+                "It is sunny, humid, 24 Celsius!")
+
     ;; OpenAI Schema without :name to keep it DRY:
     :schema {:description "Get current temperature for a given location."
              :parameters {:type "object"
