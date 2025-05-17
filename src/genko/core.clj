@@ -47,6 +47,17 @@
                           :properties {:location {:type "string"
                                                   :description "City and country e.g. Bogotá, Colombia"}}
                           :required ["location"]
+                          :additionalProperties false}}}
+
+   "get-current-date-and-time"
+   {:tool (fn [arguments]
+            (str (new java.util.Date)))
+
+    ;; OpenAI Schema without :name to keep it DRY:
+    :schema {:description "Get current date and time."
+             :parameters {:type "object"
+                          :properties {}
+                          :required []
                           :additionalProperties false}}}})
 
 
