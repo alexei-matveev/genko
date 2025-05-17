@@ -38,8 +38,8 @@
 ;; [2] https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models
 (def tool-map
   {"get_weather"
-   {:callable (fn [arguments]
-                "It is sunny, humid, 24 Celsius!")
+   {:tool (fn [arguments]
+            "It is sunny, humid, 24 Celsius!")
 
     ;; OpenAI Schema without :name to keep it DRY:
     :schema {:description "Get current temperature for a given location."
@@ -127,11 +127,11 @@
                                (for [tool-call tool-calls
                                      :let [{:keys [id function]} tool-call
                                            {:keys [name arguments]} function
-                                           callable (:callable (tool-map name))]]
+                                           tool (:tool (tool-map name))]]
                                  {:role "tool"
                                   :name name
                                   :tool_call_id id
-                                  :content (callable arguments)}))]
+                                  :content (tool arguments)}))]
             ;; FIXME: potentially infinite recursion here if LLM never
             ;; stops calling tools!
             (recur :assistant messages))
