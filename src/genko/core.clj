@@ -141,17 +141,22 @@
   ([prompt] (llm-apply prompt []))
   ([prompt context]
    (let [messages (conj context {:role "user" :content prompt})
-         options (read-config-file)]
-     (chat-completion options messages))))
+         options (read-config-file)
+         response (chat-completion options messages)]
+     (:content response))))
+
 
 (comment
-  ;; => "The capital of France is Paris."
   (llm-apply "What is the capital of France?")
+  =>
+  "The capital of France is Paris."
 
-  ;; => "Genko is a simple command-line tool designed ..."
   (let [readme (slurp "README.md")
         prompt (str "Summarize the following text:\n" readme)]
-    (llm-apply prompt)))
+    (llm-apply prompt))
+  =>
+  "Genko is a simple command-line tool designed ...")
+
 
 (defn -main [& args]
   ;; NOTE: API key leaks to stdout on CLI parsing errors if
