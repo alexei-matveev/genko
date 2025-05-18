@@ -24,15 +24,15 @@
     result))
 
 
-;; See  OpenAI function  calling  [1].  Is  the documentation  correct
-;; though?  Because the overall structure
+;; See OpenAI function calling [1].   Beware of the schema differences
+;; between Responses- and historical Chat Completions APIs used here:
 ;;
 ;;   [{:type "function", :function {:name ...}}, ...]
 ;;
-;; does  not appear  there  as of  2025-05-16.   This contradicts  the
-;; Cookbook example [2].  BTW, not  every model can tools.  Even fewer
-;; can do  it well.  Ministral-3B on  Azure can do some  tool calling,
-;; Phi-4 complains it was not starte with the correct flags, however.
+;; See  the Cookbook  example [2].   BTW, not  every model  can tools.
+;; Even fewer can do it well.   Ministral-3B on Azure can do some tool
+;; calling, Phi-4 complains it was  not starte with the correct flags,
+;; however.
 ;;
 ;; Wie want to map names to schema  AND code, so the `tool-map` is not
 ;; identical to the list of tools as  in the manual [1]. We derive the
