@@ -86,7 +86,7 @@
                        {:type "function"
                         :function (assoc schema :name fn-name)})}
         result (api-call options "/chat/completions" body)]
-    (if (:verbose options)
+    (when (:verbose options)
       (pp/pprint {:Q body :A result}))
     (get-in result [:choices 0 :message])))
 
@@ -182,13 +182,13 @@
 
 (comment
   (llm-apply "What is the capital of France?")
-  =>
+  ;; =>
   "The capital of France is Paris."
 
   (let [readme (slurp "README.md")
         prompt (str "Summarize the following text:\n" readme)]
     (llm-apply prompt))
-  =>
+  ;; =>
   "Genko is a simple command-line tool designed ...")
 
 
@@ -203,14 +203,11 @@
                      [nil "--api-key API-KEY" "API key"
                       :default (System/getenv "OPENAI_API_KEY")]]
         cli-parsed (cli/parse-opts args cli-options)
-        {:keys [options arguments summary errors]} cli-parsed]
-    (if (:verbose options)
+        {:keys [options errors]} cli-parsed]
+
+    (when (:verbose options)
       (pp/pprint cli-parsed))
-    ;; (println "Options:" options)
-    ;; (println "Arguments:" arguments)
-    ;; (println "Summary:")
-    ;; (println summary)
-    ;; (println "Errors:" errors)
+
     (if-not (seq errors)
       (chat-with-user options
                       :user
