@@ -189,12 +189,7 @@
   "Genko is a simple command-line tool designed ...")
 
 
-;; NOTE: API  key may leaks to  stdout if OPENAI_API_KEY is  set.  See
-;; also Aider, Codex and Claude Code CLIs for inspiration [1, 2, 3].
-;;
-;; [1] https://aider.chat/
-;; [2] https://github.com/openai/codex
-;; [3] https://docs.anthropic.com/en/docs/claude-code/sdk
+;; NOTE: API key may leaks to stdout if OPENAI_API_KEY is set.
 (defn -main [& args]
   (let [cli-options [["-v" "--verbose" "Enable verbose mode"
                       :default false]

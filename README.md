@@ -19,6 +19,19 @@ Build executable in `./bin/genko`:
 
     $ just build
 
+
+## Other CLI interfaces
+
+See also Aider, Codex and Claude Code CLIs and other interfaces for
+inspiration:
+
+* https://aider.chat/
+* https://github.com/openai/codex
+* https://docs.anthropic.com/en/docs/claude-code/sdk
+* https://llm.datasette.io
+* https://github.com/baalimago/clai
+
+
 ## License
 
 Copyright © 2025 Alexei Matveev
