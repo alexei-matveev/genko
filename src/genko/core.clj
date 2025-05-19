@@ -44,28 +44,31 @@
 ;; [1] https://platform.openai.com/docs/guides/function-calling
 ;; [2] https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models
 (def tool-map
-  {"get_weather"
+  {"get-weather"
    {:tool (fn [arguments]
             "It is sunny, humid, 24 Celsius!")
 
-    ;; OpenAI Schema without :name to keep it DRY:
+    ;; OpenAI Schema without `:name` to keep it DRY. The `:name` will
+    ;; be set later equal to the key of the this `tool-map` entry.
     :schema {:description "Get current temperature for a given location."
              :parameters {:type "object"
                           :properties {:location {:type "string"
                                                   :description "City and country e.g. Bogotá, Colombia"}}
                           :required ["location"]
-                          :additionalProperties false}}}
+                          :additionalProperties false}
+             ;; Ask LLM to actually enforce schema on arguments:
+             :strict true}}
 
    "get-current-date-and-time"
    {:tool (fn [arguments]
             (str (new java.util.Date)))
 
-    ;; OpenAI Schema without :name to keep it DRY:
     :schema {:description "Get current date and time."
              :parameters {:type "object"
                           :properties {}
                           :required []
-                          :additionalProperties false}}}})
+                          :additionalProperties false}
+             :strict true}}})
 
 
 ;; `chat-completion` now takes a list of messages as context, not just
