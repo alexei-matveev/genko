@@ -1,5 +1,6 @@
 (ns genko.core
   (:require
+   [genko.server :as server]
    [cheshire.core :as json]
    [clj-http.client :as client]
    [clojure.string :as str]
@@ -192,7 +193,9 @@
   "Genko is a simple command-line tool designed ...")
 
 
-;; NOTE: API key may leaks to stdout if OPENAI_API_KEY is set.
+;; NOTE: API key may leaks to stdout if OPENAI_API_KEY is set. FIXME:
+;; mv -main in a separate namespace to allow avoid loops in
+;; dependencies.
 (defn -main [& args]
   (let [cli-options [["-v" "--verbose" "Enable verbose mode"
                       :default false]
@@ -201,16 +204,24 @@
                      [nil "--base-url BASE-URL" "Base URL"
                       :default (System/getenv "OPENAI_API_BASE_URL")]
                      [nil "--api-key API-KEY" "API key"
-                      :default (System/getenv "OPENAI_API_KEY")]]
+                      :default (System/getenv "OPENAI_API_KEY")]
+                     [nil "--server" "Start a server"
+                      :default false]]
         cli-parsed (cli/parse-opts args cli-options)
         {:keys [options errors]} cli-parsed]
 
     (when (:verbose options)
       (pp/pprint cli-parsed))
 
-    (if-not (seq errors)
+    (cond
+      (seq errors)
+      (println "Errors:" (str/join \newline errors))
+
+      (:server options)
+      (server/main "3000")
+
+      :else
       (chat-with-user options
                       :user
                       [{:role "system"
-                        :content "You are a helpful assistant. Reply in Markdown!"}])
-      (println "Errors:" (str/join \newline errors)))))
+                        :content "You are a helpful assistant. Reply in Markdown!"}]))))
