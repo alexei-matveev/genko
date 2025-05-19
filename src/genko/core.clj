@@ -223,5 +223,5 @@
       :else
       (chat-with-user options
                       :user
-                      [{:role "system"
+                      [{:role "developer"
                         :content "You are a helpful assistant. Reply in Markdown!"}]))))
