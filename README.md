@@ -28,7 +28,8 @@ inspiration:
 * https://aider.chat/
 * https://github.com/openai/codex
 * https://docs.anthropic.com/en/docs/claude-code/sdk
-* https://llm.datasette.io
+* https://llm.datasette.io with
+  [Tools](https://simonwillison.net/2025/May/27/llm-tools/)
 * https://github.com/baalimago/clai
 
 
