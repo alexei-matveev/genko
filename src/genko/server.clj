@@ -15,20 +15,24 @@
 
 
 (defn chat-completions-handler
-  "Stub handler for /chat/completions endpoint."
+  "Echoes the last message's content from the request."
   [request]
-  ;; TODO: Implement actual logic
-  {:status 200
-   :headers {"Content-Type" "application/json"}
-   :body (json/generate-string
-          {:id "chatcmpl-stub"
-           :object "chat.completion"
-           :created (quot (System/currentTimeMillis) 1000)
-           :model "gpt-4o"
-           :choices [{:index 0
-                      :message {:role "assistant"
-                                :content "This is a harcoded stub response."}
-                      :finish_reason "stop"}]})})
+  (let [body (slurp (:body request))
+        data (try (json/parse-string body true) (catch Exception _ {}))
+        messages (:messages data)
+        last-msg (last messages)
+        last-content (:content last-msg)]
+    {:status 200
+     :headers {"Content-Type" "application/json"}
+     :body (json/generate-string
+            {:id "chatcmpl-echo"
+             :object "chat.completion"
+             :created (quot (System/currentTimeMillis) 1000)
+             :model "gpt-4o"
+             :choices [{:index 0
+                        :message {:role "assistant"
+                                  :content (or last-content "")}
+                        :finish_reason "stop"}]})}))
 
 
 (defn models-handler
