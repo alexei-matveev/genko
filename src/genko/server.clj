@@ -27,7 +27,7 @@
            :model "gpt-4o"
            :choices [{:index 0
                       :message {:role "assistant"
-                                :content "This is a stub response."}
+                                :content "This is a harcoded stub response."}
                       :finish_reason "stop"}]})})
 
 
@@ -64,3 +64,7 @@
   (let [port (if port (Integer/parseInt port) 3000)]
     (println (str "Starting server on port " port "..."))
     (start-server port)))
+
+;; For your C-x C-e pleasure:
+(comment
+  (main))
