@@ -11,7 +11,7 @@ Foremost it is a project to learn the limits of Copilot for Clojure.
 There is no default for `OPENAI_API_BASE_URL`, so you need to set
 both environment variables:
 
-    $ OPENAI_API_BASE_URL=https://api.example.com/v1
+    $ OPENAI_BASE_URL=https://api.example.com/v1
     $ OPENAI_API_KEY=...
     $ lein run
 

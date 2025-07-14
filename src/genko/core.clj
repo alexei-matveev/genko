@@ -202,7 +202,7 @@
                      [nil "--model MODEL" "Language model"
                       :default "gpt-4o"]
                      [nil "--base-url BASE-URL" "Base URL"
-                      :default (System/getenv "OPENAI_API_BASE_URL")]
+                      :default (System/getenv "OPENAI_BASE_URL")]
                      [nil "--api-key API-KEY" "API key"
                       :default (System/getenv "OPENAI_API_KEY")]
                      [nil "--server" "Start a server"
