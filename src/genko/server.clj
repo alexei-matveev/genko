@@ -13,8 +13,9 @@
    [compojure.core :as cc]
    [compojure.route :as route]))
 
+(def ^:private MODEL "echo")
 
-(defn chat-completions-handler
+(defn- chat-completions-handler
   "Echoes the last message's content from the request."
   [request]
   (let [body (slurp (:body request))
@@ -28,21 +29,21 @@
             {:id "chatcmpl-echo"
              :object "chat.completion"
              :created (quot (System/currentTimeMillis) 1000)
-             :model "echo"
+             :model MODEL
              :choices [{:index 0
                         :message {:role "assistant"
                                   :content (or last-content "")}
                         :finish_reason "stop"}]})}))
 
 
-(defn models-handler
+(defn- models-handler
   "Stub handler for /models endpoint."
   [request]
   {:status 200
    :headers {"Content-Type" "application/json"}
    :body (json/generate-string
           {:object "list"
-           :data [{:id "gpt-4o"
+           :data [{:id MODEL
                    :object "model"
                    :created 0
                    :owned_by "openai"
@@ -58,9 +59,10 @@
 (defn start-server
   "Starts the HTTP server on the given port."
   ([]
-   (start-server 3000))
-  ([port]
-   (run-jetty #'app-routes {:port port :join? false})))
+   (start-server {:port 3000}))
+  ([options]
+   (let [port (:port options)]
+     (run-jetty #'app-routes {:port port :join? false}))))
 
 
 ;; For your C-x C-e pleasure:

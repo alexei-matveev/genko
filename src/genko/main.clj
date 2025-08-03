@@ -66,7 +66,7 @@
       (println "Errors:" (str/join \newline errors))
 
       (:server options)
-      (server/start-server (:port options))
+      (server/start-server options)
 
       :else
       (core/chat-with-user
