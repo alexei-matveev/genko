@@ -3,7 +3,7 @@
 ;; OpenAI server protocoll. Sometime. So far these are only stubs.
 ;;
 ;;   $ curl -s http://localhost:3000/v1/models | jq
-;;   $ curl -sXPOST http://localhost:3000/v1/chat/completions | jq
+;;   $ curl -sXPOST http://localhost:3000/v1/chat/completions -d '{"messages":[{"role":"user","content":"are you human?"}]}' | jq
 ;;
 (ns genko.server
   (:require
@@ -28,7 +28,7 @@
             {:id "chatcmpl-echo"
              :object "chat.completion"
              :created (quot (System/currentTimeMillis) 1000)
-             :model "gpt-4o"
+             :model "echo"
              :choices [{:index 0
                         :message {:role "assistant"
                                   :content (or last-content "")}
@@ -63,12 +63,6 @@
    (run-jetty #'app-routes {:port port :join? false})))
 
 
-;; Optionally, add a -main entry point for CLI usage
-(defn main [& [port]]
-  (let [port (if port (Integer/parseInt port) 3000)]
-    (println (str "Starting server on port " port "..."))
-    (start-server port)))
-
 ;; For your C-x C-e pleasure:
 (comment
-  (main))
+  (start-server))

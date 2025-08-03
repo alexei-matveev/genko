@@ -205,8 +205,8 @@
                       :default (System/getenv "OPENAI_BASE_URL")]
                      [nil "--api-key API-KEY" "API key"
                       :default (System/getenv "OPENAI_API_KEY")]
-                     [nil "--server" "Start a server"
-                      :default false]]
+                     [nil "--server" "Start a server" :default false]
+                     [nil "--port PORT" "Server port" :default 3000 :parse-fn #(Integer/parseInt %)]]
         cli-parsed (cli/parse-opts args cli-options)
         {:keys [options errors]} cli-parsed]
 
@@ -218,7 +218,7 @@
       (println "Errors:" (str/join \newline errors))
 
       (:server options)
-      (server/main "3000")
+      (server/start-server (:port options))
 
       :else
       (chat-with-user options
