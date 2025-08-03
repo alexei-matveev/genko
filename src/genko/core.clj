@@ -200,7 +200,7 @@
   (let [cli-options [["-v" "--verbose" "Enable verbose mode"
                       :default false]
                      [nil "--model MODEL" "Language model"
-                      :default "gpt-4o"]
+                      :default "gpt-4.1"]
                      [nil "--base-url BASE-URL" "Base URL"
                       :default (System/getenv "OPENAI_BASE_URL")]
                      [nil "--api-key API-KEY" "API key"
