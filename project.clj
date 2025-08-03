@@ -9,6 +9,6 @@
                  [org.clojure/tools.cli "1.1.230"]
                  [ring/ring-jetty-adapter "1.14.1"]
                  [compojure "1.7.1"]]
-  :main genko.core
+  :main genko.main
   :aot :all
-  :repl-options {:init-ns genko.core})
+  :repl-options {:init-ns genko.main})
