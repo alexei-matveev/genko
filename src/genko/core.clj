@@ -8,10 +8,19 @@
    [clojure.java.io :as io]
    [clojure.pprint :as pp]))
 
+
+(def ^:private default-options
+  {:base-url (or (System/getenv "OPENAI_BASE_URL")
+                 "http://localhost:3000")
+   :api-key (or (System/getenv "OPENAI_API_KEY")
+                "sk-1234")
+   :model "gpt-4.1"})
+
 (defn- api-call
   "Call OpenAI API"
   [options endpoint body]
-  (let [api-key (:api-key options)
+  (let [options (or options default-options)
+        api-key (:api-key options)
         base-url (:base-url options)
         ;; Endpoint is supposed to start with slash:
         url (str base-url endpoint)
@@ -77,7 +86,8 @@
   `options` is a map with :api-key, :base-url, and :model. `messages` is a list
   of message maps, e.g. [{:role \"user\" :content \"Hello\"}]."
   [options messages]
-  (let [model (:model options)
+  (let [options (or options default-options)
+        model (:model options)
         body {:model model
               :messages messages
               :tools (for [[fn-name fn-map] tool-map
