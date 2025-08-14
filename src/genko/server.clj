@@ -15,14 +15,23 @@
 
 (def ^:private MODEL "echo")
 
+
+(defn- echo-model
+  "Takes a conversation an return text"
+  [messages]
+  (let [last-msg (last messages)]
+    #_(or (clojure.string/join " XXX " (map :content messages))
+          "")
+    (or (:content last-msg) "")))
+
+
 (defn- chat-completions-handler
   "Echoes the last message's content from the request."
   [request]
   (let [body (slurp (:body request))
         data (try (json/parse-string body true) (catch Exception _ {}))
         messages (:messages data)
-        last-msg (last messages)
-        last-content (:content last-msg)]
+        reply-text (echo-model messages)]
     {:status 200
      :headers {"Content-Type" "application/json"}
      :body (json/generate-string
@@ -32,7 +41,7 @@
              :model MODEL
              :choices [{:index 0
                         :message {:role "assistant"
-                                  :content (or last-content "")}
+                                  :content reply-text}
                         :finish_reason "stop"}]})}))
 
 
@@ -56,6 +65,10 @@
   (route/not-found (response/not-found "Not Found")))
 
 
+;; You may talk to the server from the CLI like this:
+;;
+;;   $ lein run --base-url=http://localhost:3000/v1
+;;
 (defn start-server
   "Starts the HTTP server on the given port."
   ([]
