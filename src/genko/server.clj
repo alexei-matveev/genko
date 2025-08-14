@@ -7,6 +7,7 @@
 ;;
 (ns genko.server
   (:require
+   [genko.core :as core]
    [cheshire.core :as json]
    [ring.adapter.jetty :refer [run-jetty]]
    [ring.util.response :as response]
@@ -17,12 +18,20 @@
 
 
 (defn- echo-model
-  "Takes a conversation an return text"
+  "Takes a conversation and returns text"
   [messages]
   (let [last-msg (last messages)]
     #_(or (clojure.string/join " XXX " (map :content messages))
           "")
     (or (:content last-msg) "")))
+
+
+(defn- real-model
+  "Takes a conversation and returns text"
+  [messages]
+  ;; This is the location to augment or redesign context and pass it
+  ;; to upstream LLM.
+  (:content (core/chat-completion nil messages)))
 
 
 (defn- chat-completions-handler
@@ -31,7 +40,7 @@
   (let [body (slurp (:body request))
         data (try (json/parse-string body true) (catch Exception _ {}))
         messages (:messages data)
-        reply-text (echo-model messages)]
+        reply-text (real-model messages)]
     {:status 200
      :headers {"Content-Type" "application/json"}
      :body (json/generate-string
