@@ -11,6 +11,7 @@
    [cheshire.core :as json]
    [ring.adapter.jetty :refer [run-jetty]]
    [ring.util.response :as response]
+   [ring.middleware.cors :refer [wrap-cors]]
    [compojure.core :as cc]
    [compojure.route :as route])
   (:require [clojure.java.io :as io]))
@@ -130,6 +131,15 @@
   (route/not-found (response/not-found "Not Found")))
 
 
+;; CORS Headers appear to be necessary if you want to try Open WebUI
+;; with a Direct Connection from Browser to Localhost. NOTE: Wildcard
+;; here allows any website you have open in your Browser to speak to
+;; your server! FIXME: Auth implementieren?
+(def app
+  (-> app-routes
+      (wrap-cors :access-control-allow-origin [#".*"]
+                 :access-control-allow-methods [:get :put :post :delete])))
+
 ;; You can interact with the server from the CLI like this:
 ;;
 ;;   $ lein run --base-url=http://localhost:3000/v1
@@ -148,7 +158,7 @@
    (start-server {:port 3000}))
   ([options]
    (let [port (:port options)]
-     (run-jetty #'app-routes {:port port :join? false}))))
+     (run-jetty #'app {:port port :join? false}))))
 
 
 ;; For your C-x C-e pleasure:
