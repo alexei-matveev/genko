@@ -1,6 +1,5 @@
 (ns genko.core
   (:require
-   [genko.server :as server]
    [cheshire.core :as json]
    [clj-http.client :as client]
    [clojure.string :as str]
