@@ -78,10 +78,15 @@
   (route/not-found (response/not-found "Not Found")))
 
 
-;; You may talk to the server from the CLI like this:
+;; You can interact with the server from the CLI like this:
 ;;
 ;;   $ lein run --base-url=http://localhost:3000/v1
 ;;
+;; To start the server, execute (start-server) from Cider, or run:
+;;
+;;   $ lein run --server
+;;
+;; in the CLI.
 (defn start-server
   "Starts the HTTP server on the given port."
   ([]
