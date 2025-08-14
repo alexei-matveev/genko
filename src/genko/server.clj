@@ -12,9 +12,10 @@
    [ring.adapter.jetty :refer [run-jetty]]
    [ring.util.response :as response]
    [compojure.core :as cc]
-   [compojure.route :as route]))
+   [compojure.route :as route])
+  (:require [clojure.java.io :as io]))
 
-(def ^:private MODEL "echo")
+(def ^:private MODEL "genko")
 
 
 (defn- echo-model
@@ -38,24 +39,75 @@
           ""))))
 
 
+(defn- sse-chunk
+  "Formats a chunk of data for SSE."
+  [data]
+  (str "data: " (json/generate-string data) "\n\n"))
+
+
+;; Simulate streaming by splitting the reply into words
+(defn- stream
+  "Stream completion request via SSE."
+  [text]
+  (let [words (clojure.string/split text #"\s+")]
+    {:status 200
+     :headers {"Content-Type" "text/event-stream"
+               "Cache-Control" "no-cache"
+               "Connection" "keep-alive"}
+     :body (io/input-stream
+            (let [out (java.io.ByteArrayOutputStream.)]
+              (doseq [[idx word] (map-indexed vector words)]
+                (.write out (.getBytes
+                             (sse-chunk
+                              {:id (str "chatcmpl-echo-" idx)
+                               :object "chat.completion.chunk"
+                               :created (quot (System/currentTimeMillis) 1000)
+                               :model MODEL
+                               :choices [{:index 0
+                                          :delta {:role (when (zero? idx) "assistant")
+                                                  :content (str word (when (< idx (dec (count words))) " "))}
+                                          :finish_reason nil}]}))))
+              ;; Send the final chunk with finish_reason
+              (.write out (.getBytes
+                           (sse-chunk
+                            {:id (str "chatcmpl-echo-" (count words))
+                             :object "chat.completion.chunk"
+                             :created (quot (System/currentTimeMillis) 1000)
+                             :model MODEL
+                             :choices [{:index 0
+                                        :delta {}
+                                        :finish_reason "stop"}]})))
+              ;; End of stream marker
+              (.write out (.getBytes "data: [DONE]\n\n"))
+              (java.io.ByteArrayInputStream. (.toByteArray out))))}))
+
+
+(defn- return
+  "Return non-streaming completion request"
+  [text]
+  {:status 200
+   :headers {"Content-Type" "application/json"}
+   :body (json/generate-string
+          {:id "chatcmpl-echo"
+           :object "chat.completion"
+           :created (quot (System/currentTimeMillis) 1000)
+           :model MODEL
+           :choices [{:index 0
+                      :message {:role "assistant"
+                                :content text}
+                      :finish_reason "stop"}]})})
+
+
 (defn- chat-completions-handler
-  "Handle non-streaming completion request"
+  "Handle non-streaming and streaming completion request"
   [request]
   (let [body (slurp (:body request))
         data (try (json/parse-string body true) (catch Exception _ {}))
         messages (:messages data)
-        reply-text (real-model messages)]
-    {:status 200
-     :headers {"Content-Type" "application/json"}
-     :body (json/generate-string
-            {:id "chatcmpl-echo"
-             :object "chat.completion"
-             :created (quot (System/currentTimeMillis) 1000)
-             :model MODEL
-             :choices [{:index 0
-                        :message {:role "assistant"
-                                  :content reply-text}
-                        :finish_reason "stop"}]})}))
+        text (real-model messages)]
+    (if (:stream data)
+      (stream text)
+      (return text))))
 
 
 (defn- models-handler
@@ -86,7 +138,10 @@
 ;;
 ;;   $ lein run --server
 ;;
-;; in the CLI.
+;; in the CLI. Test streaming like this:
+;;
+;;   $ curl -NXPOST http://localhost:3000/v1/chat/completions -d '{"model":"genko","messages":[{"role":"user","content":"are you human?"}],"stream":true}'
+;;
 (defn start-server
   "Starts the HTTP server on the given port."
   ([]
