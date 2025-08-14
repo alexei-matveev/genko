@@ -31,11 +31,15 @@
   [messages]
   ;; This is the location to augment or redesign context and pass it
   ;; to upstream LLM.
-  (:content (core/chat-completion nil messages)))
+  (let [message (core/chat-completion nil messages)]
+    (or (:content message)
+        (if (:tool_calls message)
+          "<llm expects us to call tools here>"
+          ""))))
 
 
 (defn- chat-completions-handler
-  "Echoes the last message's content from the request."
+  "Handle non-streaming completion request"
   [request]
   (let [body (slurp (:body request))
         data (try (json/parse-string body true) (catch Exception _ {}))
