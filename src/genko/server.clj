@@ -135,7 +135,7 @@
 ;; with a Direct Connection from Browser to Localhost. NOTE: Wildcard
 ;; here allows any website you have open in your Browser to speak to
 ;; your server! FIXME: Auth implementieren?
-(def app
+#_(def app
   (-> app-routes
       (wrap-cors :access-control-allow-origin [#".*"]
                  :access-control-allow-methods [:get :put :post :delete])))
@@ -158,7 +158,7 @@
    (start-server {:port 3000}))
   ([options]
    (let [port (:port options)]
-     (run-jetty #'app {:port port :join? false}))))
+     (run-jetty #'app-routes {:port port :join? false}))))
 
 
 ;; For your C-x C-e pleasure:
