@@ -1,9 +1,13 @@
 ;;
-;; Implements basic /chat/completions and /models endpoints of the
-;; OpenAI server protocoll. Sometime. So far these are only stubs.
+;; Implements basic /v1/chat/completions and /v1/models endpoints of
+;; the OpenAI server protocoll. Liberal in what it accepts.
 ;;
 ;;   $ curl -s http://localhost:3000/v1/models | jq
 ;;   $ curl -sXPOST http://localhost:3000/v1/chat/completions -d '{"messages":[{"role":"user","content":"are you human?"}]}' | jq
+;;
+;; This would not be JSON, rather an SSE stream:
+;;
+;;   $ curl -vNXPOST http://localhost:3000/v1/chat/completions -d '{"messages":[{"role":"user","content":"tell me a story!"}],"stream":true}'
 ;;
 (ns genko.server
   (:require
