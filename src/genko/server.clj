@@ -11,10 +11,13 @@
    [cheshire.core :as json]
    [ring.adapter.jetty :refer [run-jetty]]
    [ring.util.response :as response]
+   [ring.core.protocols :as proto]
    [ring.middleware.cors :refer [wrap-cors]]
    [compojure.core :as cc]
-   [compojure.route :as route])
-  (:require [clojure.java.io :as io]))
+   [compojure.route :as route]
+   [clojure.java.io :as io])
+  (:import (java.io PipedInputStream PipedOutputStream PrintWriter)
+           (java.nio.charset StandardCharsets)))
 
 (def ^:private MODEL "genko")
 
@@ -50,37 +53,40 @@
 (defn- stream
   "Stream completion request via SSE."
   [text]
-  (let [words (clojure.string/split text #"\s+")]
+  (let [words (clojure.string/split text #"\s+")
+        pipe-in (ring.util.io/piped-input-stream
+                 (fn [out]
+                   (doseq [[idx word] (map-indexed vector words)]
+                     (.write out (.getBytes
+                                  (sse-chunk
+                                   {:id (str "chatcmpl-echo-" idx)
+                                    :object "chat.completion.chunk"
+                                    :created (quot (System/currentTimeMillis) 1000)
+                                    :model MODEL
+                                    :choices [{:index 0
+                                               :delta {:role (when (zero? idx) "assistant")
+                                                       :content (str word (when (< idx (dec (count words))) " "))}
+                                               :finish_reason nil}]})))
+                     (.flush out)
+                     (println word)
+                     (Thread/sleep 500))
+                   ;; Send the final chunk with finish_reason
+                   (.write out (.getBytes
+                                (sse-chunk
+                                 {:id (str "chatcmpl-echo-" (count words))
+                                  :object "chat.completion.chunk"
+                                  :created (quot (System/currentTimeMillis) 1000)
+                                  :model MODEL
+                                  :choices [{:index 0
+                                             :delta {}
+                                             :finish_reason "stop"}]})))
+                   ;; End of stream marker
+                   (.write out (.getBytes "data: [DONE]\n\n"))))]
     {:status 200
      :headers {"Content-Type" "text/event-stream"
                "Cache-Control" "no-cache"
                "Connection" "keep-alive"}
-     :body (io/input-stream
-            (let [out (java.io.ByteArrayOutputStream.)]
-              (doseq [[idx word] (map-indexed vector words)]
-                (.write out (.getBytes
-                             (sse-chunk
-                              {:id (str "chatcmpl-echo-" idx)
-                               :object "chat.completion.chunk"
-                               :created (quot (System/currentTimeMillis) 1000)
-                               :model MODEL
-                               :choices [{:index 0
-                                          :delta {:role (when (zero? idx) "assistant")
-                                                  :content (str word (when (< idx (dec (count words))) " "))}
-                                          :finish_reason nil}]}))))
-              ;; Send the final chunk with finish_reason
-              (.write out (.getBytes
-                           (sse-chunk
-                            {:id (str "chatcmpl-echo-" (count words))
-                             :object "chat.completion.chunk"
-                             :created (quot (System/currentTimeMillis) 1000)
-                             :model MODEL
-                             :choices [{:index 0
-                                        :delta {}
-                                        :finish_reason "stop"}]})))
-              ;; End of stream marker
-              (.write out (.getBytes "data: [DONE]\n\n"))
-              (java.io.ByteArrayInputStream. (.toByteArray out))))}))
+     :body pipe-in}))
 
 
 (defn- return
@@ -125,9 +131,72 @@
                    :permission []}]} )})
 
 
+;; Protocoll funciton write-body-to-stream is already defined for
+;; InputStream and that implementation just copies all of it in bulk.
+(defn example-handler-bulk-copy [_request]
+  ;; create a piped stream: write from one thread, read from the HTTP
+  ;; server thread
+  (let [p-in  (PipedInputStream.)
+        p-out (PipedOutputStream. p-in)]
+    ;; write asynchronously
+    (future
+      (with-open [writer (PrintWriter. p-out)]
+        (dotimes [i 10]
+          (println i)
+          (.println writer (str "chunk " i))
+          ;; Pointless apparantly:
+          (.flush writer)
+          (Thread/sleep 500))))
+    {:status 200
+     :headers {"Content-Type" "text/plain"}
+     ;; Ring will stream this InputStream
+     :body (io/input-stream p-in)}))
+
+
+;; Protocoll funciton write-body-to-stream is already defined for ISeq
+;; and that implementatin does not flash after each chunk. That is why
+;; we need an new Class.
+(defrecord FlushingSeqBody [chunks])
+
+(extend-protocol proto/StreamableResponseBody
+  FlushingSeqBody
+  (write-body-to-stream [body _response output-stream]
+    (doseq [chunk (:chunks body)]
+      ;; Write the chunk
+      (.write output-stream
+              (.getBytes ^String chunk StandardCharsets/UTF_8))
+      ;; Flush so it is sent immediately
+      (.flush output-stream))))
+
+
+;; Simulate streaming
+(defn slow-lazy-seq [sequence]
+  (lazy-seq
+   (when-let [s (seq sequence)]
+     (Thread/sleep 1000)
+     (println (first s))
+     (cons (first s) (slow-lazy-seq (rest s))))))
+
+
+;; https://github.com/ring-clojure/ring/issues/491
+(defn example-handler [request]
+  {:status 200
+   :headers {"Content-Type" "text/plain"}
+   ;; ISeq Body will be delivered with Transfer-Encoding: chunked
+   :body (->FlushingSeqBody
+          (slow-lazy-seq
+           (for [i (range 5)]
+             (str "chunk " i "\n"))))})
+
 (cc/defroutes app-routes
   (cc/POST "/v1/chat/completions" request (chat-completions-handler request))
   (cc/GET "/v1/models" request (models-handler request))
+
+  ;; To test streaming response without buffering here:
+  ;;
+  ;;   curl -vNXPOST http://localhost:3000/example
+  ;;
+  (cc/POST "/example" request (example-handler request))
   (route/not-found (response/not-found "Not Found")))
 
 
