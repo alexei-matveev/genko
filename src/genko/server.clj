@@ -26,10 +26,9 @@
 (defn- echo-model
   "Takes a conversation and returns text"
   [messages]
-  (let [last-msg (last messages)]
-    #_(or (clojure.string/join " XXX " (map :content messages))
-          "")
-    (or (:content last-msg) "")))
+  (let [message (last messages)]
+    (or (:content message)
+        (json/generate-string message))))
 
 
 (defn- real-model
@@ -39,10 +38,14 @@
   ;; to upstream LLM.
   (let [message (core/chat-completion nil messages)]
     (or (:content message)
-        (if (:tool_calls message)
-          "<llm expects us to call tools here>"
-          ""))))
+        (json/generate-string message))))
 
+
+;; Flip the switch if the upstream model makes troubles:
+(defn- upstream-model [messages]
+  (if true
+    (real-model messages)
+    (echo-model messages)))
 
 ;; Much of what follows is the (unnecessary?) complexity to allow
 ;; clients that insist on streaming to talk to our server. Some
@@ -166,7 +169,7 @@
   (let [body (slurp (:body request))
         data (try (json/parse-string body true) (catch Exception _ {}))
         messages (:messages data)
-        text (real-model messages)]
+        text (upstream-model messages)]
     (if (:stream data)
       (stream text)
       (return text))))
