@@ -121,7 +121,15 @@
                      :choices [{:index 0
                                 :delta {}
                                 :finish_reason "stop"}]})
-        ;; End of SSE stream marker
+
+        ;; End of SSE stream marker.  Note that there are no quotes
+        ;; around sentinel values in the SSE stream. These quotes
+        ;; would make sentinel values a valid JSON string. And
+        ;; sentinels such as [DONE] are probably intentionaly chosen
+        ;; not to be valid JSON. Thus cannot use `ssh-chunk` here:
+        ;;
+        ;;   (sse-chunk "[DONE]") => "data: \"[DONE]\"\n\n"
+        ;;
         done-chunk "data: [DONE]\n\n"]
     {:status 200
      :headers {"Content-Type" "text/event-stream"
