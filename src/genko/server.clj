@@ -15,8 +15,7 @@
    [compojure.core :as cc]
    [compojure.route :as route]
    [clojure.java.io :as io])
-  (:import (java.io PipedInputStream PipedOutputStream PrintWriter)
-           (java.nio.charset StandardCharsets)))
+  (:import (java.io PipedInputStream PipedOutputStream PrintWriter)))
 
 (def ^:private MODEL "genko")
 
@@ -56,7 +55,7 @@
     (doseq [chunk (:chunks body)]
       ;; Write the chunk
       (.write output-stream
-              (.getBytes ^String chunk StandardCharsets/UTF_8))
+              (.getBytes ^String chunk))
       ;; Flush so it is sent immediately
       (.flush output-stream))))
 
