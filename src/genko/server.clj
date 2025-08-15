@@ -163,4 +163,5 @@
 
 ;; For your C-x C-e pleasure:
 (comment
-  (start-server))
+  (def _server (start-server))
+  (.stop _server))
