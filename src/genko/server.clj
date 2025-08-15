@@ -104,11 +104,19 @@
   (str "data: " (json/generate-string data) "\n\n"))
 
 
+(comment
+  ;; Another way to split text into "words" keeping the
+  ;; whitespace. Here (?: ...) is a non-capturing regex group.
+  (re-seq #"\S+(?:\s+)?" "One two  three?")
+  =>
+  ("One " "two  " "three?"))
+
+
 ;; Simulate streaming by splitting the reply into words
 (defn- stream
   "Stream completion request via SSE."
   [text]
-  (let [words (clojure.string/split text #"\s+")
+  (let [words (re-seq #"\S+(?:\s+)?" text)
         bulk-chunks (for [[idx word] (map-indexed vector words)]
                       (sse-chunk
                        {:id (str "chatcmpl-echo-" idx)
@@ -117,7 +125,7 @@
                         :model MODEL
                         :choices [{:index 0
                                    :delta {:role (when (zero? idx) "assistant")
-                                           :content (str word (when (< idx (dec (count words))) " "))}
+                                           :content word }
                                    :finish_reason nil}]}))
         ;; Final chunk with finish_reason
         stop-chunk (sse-chunk
