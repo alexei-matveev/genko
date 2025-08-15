@@ -11,7 +11,6 @@
    [cheshire.core :as json]
    [ring.adapter.jetty :refer [run-jetty]]
    [ring.util.response :as response]
-   [ring.core.protocols :as proto]
    [ring.middleware.cors :refer [wrap-cors]]
    [compojure.core :as cc]
    [compojure.route :as route]
@@ -43,6 +42,33 @@
           ""))))
 
 
+;; Protocoll function `write-body-to-stream` is already defined for
+;; Clojure `ISeq` and that implementation does not flush after each
+;; chunk. That is why we need an new Class and a protocoll
+;; implementation.
+;;
+;; [1] https://github.com/ring-clojure/ring/blob/1.14.2/ring-core-protocols/src/ring/core/protocols.clj
+(defrecord FlushingSeqBody [chunks])
+
+(extend-protocol ring.core.protocols/StreamableResponseBody
+  FlushingSeqBody
+  (write-body-to-stream [body _response output-stream]
+    (doseq [chunk (:chunks body)]
+      ;; Write the chunk
+      (.write output-stream
+              (.getBytes ^String chunk StandardCharsets/UTF_8))
+      ;; Flush so it is sent immediately
+      (.flush output-stream))))
+
+
+;; Simulate streaming
+(defn slow-lazy-seq [sequence]
+  (lazy-seq
+   (when-let [s (seq sequence)]
+     (Thread/sleep 100)
+     (cons (first s) (slow-lazy-seq (rest s))))))
+
+
 (defn- sse-chunk
   "Formats a chunk of data for SSE."
   [data]
@@ -54,39 +80,34 @@
   "Stream completion request via SSE."
   [text]
   (let [words (clojure.string/split text #"\s+")
-        pipe-in (ring.util.io/piped-input-stream
-                 (fn [out]
-                   (doseq [[idx word] (map-indexed vector words)]
-                     (.write out (.getBytes
-                                  (sse-chunk
-                                   {:id (str "chatcmpl-echo-" idx)
-                                    :object "chat.completion.chunk"
-                                    :created (quot (System/currentTimeMillis) 1000)
-                                    :model MODEL
-                                    :choices [{:index 0
-                                               :delta {:role (when (zero? idx) "assistant")
-                                                       :content (str word (when (< idx (dec (count words))) " "))}
-                                               :finish_reason nil}]})))
-                     (.flush out)
-                     (println word)
-                     (Thread/sleep 500))
-                   ;; Send the final chunk with finish_reason
-                   (.write out (.getBytes
-                                (sse-chunk
-                                 {:id (str "chatcmpl-echo-" (count words))
-                                  :object "chat.completion.chunk"
-                                  :created (quot (System/currentTimeMillis) 1000)
-                                  :model MODEL
-                                  :choices [{:index 0
-                                             :delta {}
-                                             :finish_reason "stop"}]})))
-                   ;; End of stream marker
-                   (.write out (.getBytes "data: [DONE]\n\n"))))]
+        bulk-chunks (for [[idx word] (map-indexed vector words)]
+                      (sse-chunk
+                       {:id (str "chatcmpl-echo-" idx)
+                        :object "chat.completion.chunk"
+                        :created (quot (System/currentTimeMillis) 1000)
+                        :model MODEL
+                        :choices [{:index 0
+                                   :delta {:role (when (zero? idx) "assistant")
+                                           :content (str word (when (< idx (dec (count words))) " "))}
+                                   :finish_reason nil}]}))
+        ;; Final chunk with finish_reason
+        stop-chunk (sse-chunk
+                    {:id (str "chatcmpl-echo-" (count words))
+                     :object "chat.completion.chunk"
+                     :created (quot (System/currentTimeMillis) 1000)
+                     :model MODEL
+                     :choices [{:index 0
+                                :delta {}
+                                :finish_reason "stop"}]})
+        ;; End of SSE stream marker
+        done-chunk "data: [DONE]\n\n"]
     {:status 200
      :headers {"Content-Type" "text/event-stream"
                "Cache-Control" "no-cache"
                "Connection" "keep-alive"}
-     :body pipe-in}))
+     :body (->FlushingSeqBody
+            (slow-lazy-seq
+             (concat bulk-chunks [stop-chunk done-chunk])))}))
 
 
 (defn- return
@@ -131,9 +152,10 @@
                    :permission []}]} )})
 
 
-;; Protocoll funciton write-body-to-stream is already defined for
-;; InputStream and that implementation just copies all of it in bulk.
-(defn example-handler-bulk-copy [_request]
+;; Protocoll function `write-body-to-stream` is already defined for
+;; `InputStream` and the implementation just copies all of it in
+;; bulk. This not suitable for SSE streaming, right?
+(defn unused-example-handler [_request]
   ;; create a piped stream: write from one thread, read from the HTTP
   ;; server thread
   (let [p-in  (PipedInputStream.)
@@ -151,31 +173,6 @@
      :headers {"Content-Type" "text/plain"}
      ;; Ring will stream this InputStream
      :body (io/input-stream p-in)}))
-
-
-;; Protocoll funciton write-body-to-stream is already defined for ISeq
-;; and that implementatin does not flash after each chunk. That is why
-;; we need an new Class.
-(defrecord FlushingSeqBody [chunks])
-
-(extend-protocol proto/StreamableResponseBody
-  FlushingSeqBody
-  (write-body-to-stream [body _response output-stream]
-    (doseq [chunk (:chunks body)]
-      ;; Write the chunk
-      (.write output-stream
-              (.getBytes ^String chunk StandardCharsets/UTF_8))
-      ;; Flush so it is sent immediately
-      (.flush output-stream))))
-
-
-;; Simulate streaming
-(defn slow-lazy-seq [sequence]
-  (lazy-seq
-   (when-let [s (seq sequence)]
-     (Thread/sleep 1000)
-     (println (first s))
-     (cons (first s) (slow-lazy-seq (rest s))))))
 
 
 ;; https://github.com/ring-clojure/ring/issues/491
@@ -204,7 +201,7 @@
 ;; with a Direct Connection from Browser to Localhost. NOTE: Wildcard
 ;; here allows any website you have open in your Browser to speak to
 ;; your server! FIXME: Auth implementieren?
-#_(def app
+(def app
   (-> app-routes
       (wrap-cors :access-control-allow-origin [#".*"]
                  :access-control-allow-methods [:get :put :post :delete])))
@@ -227,7 +224,7 @@
    (start-server {:port 3000}))
   ([options]
    (let [port (:port options)]
-     (run-jetty #'app-routes {:port port :join? false}))))
+     (run-jetty #'app {:port port :join? false}))))
 
 
 ;; For your C-x C-e pleasure:
