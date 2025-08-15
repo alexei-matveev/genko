@@ -14,8 +14,7 @@
    [ring.middleware.cors :refer [wrap-cors]]
    [compojure.core :as cc]
    [compojure.route :as route]
-   [clojure.java.io :as io])
-  (:import (java.io PipedInputStream PipedOutputStream PrintWriter)))
+   [clojure.java.io :as io]))
 
 (def ^:private MODEL "genko")
 
@@ -41,10 +40,23 @@
           ""))))
 
 
-;; Protocoll function `write-body-to-stream` is already defined for
-;; Clojure `ISeq` and that implementation does not flush after each
-;; chunk. That is why we need an new Class and a protocoll
+;; Much of what follows is the (unnecessary?) complexity to allow
+;; clients that insist on streaming to talk to our server. Some
+;; clients dont even allow to configure the `stream` option of the
+;; OpenAI protocoll. You may skip to (return text)
+;; and (chat-completions-handler request) on the first reading.
+;;
+;; Clojure protocoll function `write-body-to-stream` is already
+;; defined for Clojure `ISeq` and that implementation does not flush
+;; after each chunk. That is why we need an new Class and a protocoll
 ;; implementation.
+;;
+;; Similarly, `write-body-to-stream` is predefined for `InputStream`
+;; and the implementation just copies all of it in bulk. This not
+;; suitable for SSE streaming, right? We did try with connected
+;; `PipedInputStream` and `PipedOutputStream` where we wrote and
+;; flushed chunks to the latter with no success --- the body comes in
+;; bulk on the receiver (curl) side.
 ;;
 ;; [1] https://github.com/ring-clojure/ring/blob/1.14.2/ring-core-protocols/src/ring/core/protocols.clj
 (defrecord FlushingSeqBody [chunks])
@@ -66,6 +78,17 @@
    (when-let [s (seq sequence)]
      (Thread/sleep 100)
      (cons (first s) (slow-lazy-seq (rest s))))))
+
+
+;; https://github.com/ring-clojure/ring/issues/491
+(defn example-handler [request]
+  {:status 200
+   :headers {"Content-Type" "text/plain"}
+   ;; ISeq Body will be delivered with Transfer-Encoding: chunked
+   :body (->FlushingSeqBody
+          (slow-lazy-seq
+           (for [i (range 5)]
+             (str "chunk " i "\n"))))})
 
 
 (defn- sse-chunk
@@ -150,39 +173,6 @@
                    :owned_by "openai"
                    :permission []}]} )})
 
-
-;; Protocoll function `write-body-to-stream` is already defined for
-;; `InputStream` and the implementation just copies all of it in
-;; bulk. This not suitable for SSE streaming, right?
-(defn unused-example-handler [_request]
-  ;; create a piped stream: write from one thread, read from the HTTP
-  ;; server thread
-  (let [p-in  (PipedInputStream.)
-        p-out (PipedOutputStream. p-in)]
-    ;; write asynchronously
-    (future
-      (with-open [writer (PrintWriter. p-out)]
-        (dotimes [i 10]
-          (println i)
-          (.println writer (str "chunk " i))
-          ;; Pointless apparantly:
-          (.flush writer)
-          (Thread/sleep 500))))
-    {:status 200
-     :headers {"Content-Type" "text/plain"}
-     ;; Ring will stream this InputStream
-     :body (io/input-stream p-in)}))
-
-
-;; https://github.com/ring-clojure/ring/issues/491
-(defn example-handler [request]
-  {:status 200
-   :headers {"Content-Type" "text/plain"}
-   ;; ISeq Body will be delivered with Transfer-Encoding: chunked
-   :body (->FlushingSeqBody
-          (slow-lazy-seq
-           (for [i (range 5)]
-             (str "chunk " i "\n"))))})
 
 (cc/defroutes app-routes
   (cc/POST "/v1/chat/completions" request (chat-completions-handler request))
