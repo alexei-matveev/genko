@@ -33,6 +33,10 @@ inspiration:
 * https://github.com/baalimago/clai
 
 
+## Backlog
+
+* [ ] CORS and/or Auth?
+
 ## License
 
 Copyright © 2025 Alexei Matveev
