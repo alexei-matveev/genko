@@ -18,7 +18,8 @@
    [ring.middleware.cors :refer [wrap-cors]]
    [compojure.core :as cc]
    [compojure.route :as route]
-   [clojure.java.io :as io]))
+   [clojure.java.io :as io])
+  (:import [java.io OutputStream]))
 
 (def ^:private MODEL "genko")
 
@@ -70,7 +71,7 @@
 
 (extend-protocol ring.core.protocols/StreamableResponseBody
   FlushingSeqBody
-  (write-body-to-stream [body _response output-stream]
+  (write-body-to-stream [body _response ^OutputStream output-stream]
     (doseq [chunk (:chunks body)]
       ;; Write the chunk
       (.write output-stream
