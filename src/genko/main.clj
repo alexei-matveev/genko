@@ -42,9 +42,7 @@
   "Genko is a simple command-line tool designed ...")
 
 
-;; NOTE: API key may leaks to stdout if OPENAI_API_KEY is set. FIXME:
-;; mv -main in a separate namespace to allow avoid loops in
-;; dependencies.
+;; NOTE: API key may leak to stdout if OPENAI_API_KEY is set!
 (defn -main [& args]
   (log/info "Entered ...")
   (let [cli-options [["-v" "--verbose" "Enable verbose mode"
