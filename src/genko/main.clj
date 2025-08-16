@@ -6,7 +6,8 @@
    [clojure.tools.cli :as cli]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
-   [clojure.pprint :as pp])
+   [clojure.pprint :as pp]
+   [clojure.tools.logging :as log])
   (:gen-class))
 
 
@@ -45,6 +46,7 @@
 ;; mv -main in a separate namespace to allow avoid loops in
 ;; dependencies.
 (defn -main [& args]
+  (log/info "Entered ...")
   (let [cli-options [["-v" "--verbose" "Enable verbose mode"
                       :default false]
                      [nil "--model MODEL" "Language model"
