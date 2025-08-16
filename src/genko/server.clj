@@ -37,7 +37,7 @@
   [messages]
   ;; This is the location to augment or redesign context and pass it
   ;; to upstream LLM.
-  (let [message (core/chat-completion nil messages)]
+  (let [message (core/chat-with-tools nil messages)]
     (or (:content message)
         (json/generate-string message))))
 
