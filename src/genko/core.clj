@@ -120,6 +120,53 @@
    :annotations []})
 
 
+(defn chat-with-tools
+  "Let LLM chat with our tools, return when LLM responds with actual
+  content"
+  [options messages]
+
+  (loop [messages messages]
+    ;; Actuall LLM call here:
+    (let [response (chat-completion options messages)]
+      (if-let [tool-calls (seq (:tool_calls response))]
+        ;; An assistant message with `tool_calls` must be followed by
+        ;; tool messages responding to each `tool_call_id`.  Ideally
+        ;; one would need to ask the consent of the user to execute
+        ;; tools.  But first, we must keep the response of the model
+        ;; for it to be fully context aware!
+        (let [messages (conj messages response)
+
+              ;; Now append results of tool calls:
+              messages (into messages
+                             (for [tool-call tool-calls
+                                   :let [{:keys [id function]} tool-call
+                                         {:keys [name arguments]} function
+                                         tool (:tool (tool-map name))]]
+                               {:role "tool"
+                                :name name
+                                :tool_call_id id
+                                :content (tool arguments)}))]
+          ;; FIXME: potentially infinite recursion here if LLM never
+          ;; stops calling tools!
+          (recur messages))
+
+        ;; Regular case, LLM did not ask for tool calls, Just return
+        ;; the response, hopefully with actual content. Hm, the
+        ;; context with the transcript of all the tool calls is not
+        ;; even visible to the caller. It may or may not be what the
+        ;; caller wants.
+        response))))
+
+(comment
+  (chat-with-tools nil [{:role "user", :content "what time ist it?"}])
+  =>
+  {:content "The current time is 20:55 (8:55 PM) on Saturday, August 16, 2025",
+   :role "assistant",
+   :tool_calls nil,
+   :function_call nil,
+   :annotations []})
+
+
 (defn chat-with-user
   "Interactive chat loop: repeatedly reads user input,
   extends context, and prints responses.  Conversation ends when the
@@ -141,7 +188,10 @@
                                            :content prompt})]
               (recur :assistant messages)))))
 
-      ;; Assistant turn. Actuall LLM call here.
+      ;; Assistant turn. Actuall LLM call here. FIXME: maybe reuse
+      ;; `chat-with-tools` here? Or do we need to keep all of the
+      ;; conversation history in context, includinf all the tool
+      ;; calls?
       :assistant
       (let [response (chat-completion options messages)
 
