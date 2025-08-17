@@ -178,7 +178,7 @@
 ;;   ASSISTANT: I calculated sin(1.1) using the mathematical sine
 ;;     function in Clojure code: `(Math/sin 1.1)`, which evaluates to
 ;;     approximately 0.8912.
-;;    USER: more digits?
+;;   USER: more digits?
 ;;   ASSISTANT: Sure! Using the calculation from earlier, the value of
 ;;     sin(1.1) is approximately: 0.8912073600614354
 ;;
