@@ -1,5 +1,6 @@
 (ns genko.core
   (:require
+   [genko.sci :as sci]
    [cheshire.core :as json]
    [clj-http.client :as client]
    [clojure.string :as str]
@@ -7,7 +8,6 @@
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.pprint :as pp]
-   [sci.core :as sci]
    [clojure.tools.logging :as log]))
 
 
@@ -17,6 +17,7 @@
    :api-key (or (System/getenv "OPENAI_API_KEY")
                 "sk-1234")
    :model "gpt-4.1"})
+
 
 (defn- api-call
   "Call OpenAI API"
@@ -85,11 +86,11 @@
    ;;
    ;;   Expected a string that matches the pattern '^[a-zA-Z0-9_\\\\.-]+$'.
    ;;
-   ;; Thus you cannot name a funciton
-   ;; "sci.core/eval-string". See Babashka SCI [1].
+   ;; Thus you cannot name a funciton "sci/eval-string". See Babashka
+   ;; SCI [1].
    ;;
    ;; [1] https://github.com/babashka/SCI
-   "sci.core--eval-string"
+   "sci--eval-string"
    {:tool
     (fn [arguments]
       (let [arguments (json/parse-string arguments true)
@@ -98,11 +99,8 @@
         ;; FIXME: Remote Code execution in its purest form here! SCI
         ;; ist somewhat better than a plain (eval (read-string ...))
         ;; but still!
-        (let [value (sci/eval-string clojure-code
-                                     {:namespaces {'Math {'sin Math/sin
-                                                          'cos Math/cos
-                                                          'pow Math/pow}}})]
-          (log/warn "sci.core--eval-string:" clojure-code "=>" value)
+        (let [value (sci/eval-string clojure-code)]
+          (log/warn "sci--eval-string:" clojure-code "=>" value)
           (str
            "#### Additional Context\n\n"
            "Clojure code " clojure-code " evaluates to " value
