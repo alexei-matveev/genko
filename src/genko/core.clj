@@ -165,12 +165,12 @@
    :annotations []})
 
 
-;; This implementation the function `chat-with-tools` hides from the
-;; caller what were the exact results of the tool calls and even the
-;; mere fact that the tools have been used. The context with the
-;; transcript of all the tool calls is not even visible to the
-;; caller. It may or may not be what the caller wants. Here is a use
-;; case when the transcript would have been useful:
+;; This implementation of the `chat-with-tools` function hides from
+;; the caller the exact results of the tool calls, as well as the fact
+;; that the tools were used at all. The context containing the
+;; transcript of all the tool calls is not visible to the caller. This
+;; behavior may or may not be what the caller wants. Here is a use
+;; case where the transcript would have been useful:
 ;;
 ;;   USER: sin(1.1)
 ;;   ASSISTANT: sin(1.1) ≈ 0.8912
@@ -182,8 +182,8 @@
 ;;   ASSISTANT: Sure! Using the calculation from earlier, the value of
 ;;     sin(1.1) is approximately: 0.8912073600614354
 ;;
-;; Without transcript LLM will possibly tell you a story about Taylor
-;; series when you ask it how it arrived at the result.
+;; Without a transcript, the LLM might tell you a story about the
+;; Taylor series when you ask how it arrived at the result.
 ;;
 (defn chat-with-tools
   "Let LLM chat with our tools, return when LLM responds with actual
