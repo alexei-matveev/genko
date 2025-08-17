@@ -12,6 +12,7 @@
 (ns genko.server
   (:require
    [genko.core :as core]
+   [genko.sci :as sci]
    [cheshire.core :as json]
    [ring.adapter.jetty :refer [run-jetty]]
    [ring.util.response :as response]
@@ -42,11 +43,27 @@
         (json/generate-string message))))
 
 
+(defn- sci-model
+  "Takes a conversation and returns text"
+  [messages]
+  (let [message (last messages)]
+    (try
+      (sci/eval-string (:content message))
+      (catch Exception e
+        (.getMessage e)))))
+
+
 ;; Flip the switch if the upstream model makes troubles:
 (defn- upstream-model [messages]
-  (if true
+  (case "real"
+    "real"
     (real-model messages)
-    (echo-model messages)))
+
+    "echo"
+    (echo-model messages)
+
+    "sci"
+    (sci-model messages)))
 
 ;; Much of what follows is the (unnecessary?) complexity to allow
 ;; clients that insist on streaming to talk to our server. Some
