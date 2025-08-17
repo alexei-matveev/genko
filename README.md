@@ -4,20 +4,20 @@ Genko is a simple command-line tool for interactive chat with language
 models or other servers supporting OpenAI's protocoll. It maintains
 conversation context and supports multi-turn dialogue.
 
-Genko can also run as a local server that implements basic OpenAI-compatible
-endpoints (`/v1/chat/completions` and `/v1/models`). This allows you to interact
-with Genko using HTTP requests or tools like Curl, and makes it possible to use
-Genko as a backend for compatible clients.
+Genko can also run as a local server that implements basic
+OpenAI-compatible endpoints (`/v1/chat/completions` and
+`/v1/models`). This allows you to interact with Genko using HTTP
+requests or tools like Curl, and makes it possible to use Genko as a
+backend for compatible clients, including itself.
 
 Foremost it is a project to learn the limits of Copilot for Clojure.
 
 ## Usage
 
-There is no default for `OPENAI_API_BASE_URL`, so you need to set
-both environment variables:
+You may want to set `OPENAI_BASE_URL` for the upstream LLM:
 
     $ OPENAI_BASE_URL=https://api.example.com/v1
-    $ OPENAI_API_KEY=...
+    $ OPENAI_API_KEY=sk-...
     $ lein run
 
 Build executable in `./bin/genko`:
@@ -28,7 +28,7 @@ Build executable in `./bin/genko`:
 
 You can start the server with:
 
-    $ lein run --server
+    $ genko --server
 
 Or from Cider by evaluating `(start-server)` in the `comment` section of `src/genko/server.clj`.
 
@@ -38,7 +38,7 @@ By default, the server listens on port 3000.
 
 You can interact with the server from the CLI by specifying the base URL:
 
-    $ lein run --base-url=http://localhost:3000/v1
+    $ genko --base-url=http://localhost:3000/v1
 
 Or directly with Curl:
 
@@ -48,6 +48,7 @@ Or directly with Curl:
 For streaming responses (SSE):
 
     $ curl -vNXPOST http://localhost:3000/v1/chat/completions -d '{"messages":[{"role":"user","content":"tell me a story!"}],"stream":true}'
+
 
 ## Other CLI interfaces
 
@@ -64,8 +65,8 @@ inspiration:
 
 ## Backlog
 
-* [ ] Mitigate Remote Code Execution in `(eval (read-string "untrusted
-      input of llm"))`?
+* [ ] Mitigate Remote Code Execution in `(sci/eval-string "untrusted
+      text from llm")`?
 * [ ] CORS and/or Auth for the case of running the server at
       `http://localhost:3000` and accessing it from the local browser?
 
