@@ -186,7 +186,10 @@
     (do
       (log/info "tool call" name ":" arguments)
       ;; FIXME: handle exceptions?
-      (let [value (tool arguments)]
+      (let [value (try
+                    (tool arguments)
+                    (catch Exception e
+                      (.getMessage e)))]
         {:role "tool"
          :name name
          :tool_call_id id
