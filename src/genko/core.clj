@@ -6,7 +6,8 @@
    [clojure.tools.cli :as cli]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
-   [clojure.pprint :as pp]))
+   [clojure.pprint :as pp]
+   [clojure.tools.logging :as log]))
 
 
 (def ^:private default-options
@@ -95,10 +96,12 @@
 
         ;; FIXME: Remote Code execution in its purest form here! Also
         ;; read-string ist unsafe!
-        (str
-         "#### Additional Context\n\n"
-         "Clojure code " clojure-code " evaluates to " (eval (read-string clojure-code))
-         " --- cite this but only when asked how you computed the value!")))
+        (let [value (eval (read-string clojure-code))]
+          (log/warn "babashka.sci.eval-string:" clojure-code "=>" value)
+          (str
+           "#### Additional Context\n\n"
+           "Clojure code " clojure-code " evaluates to " value
+           " --- cite this but only when asked how you computed the value!"))))
 
     :schema
     {:description "Evaluate Clojure code in restricted interpreter. Mostly for simple arithmetics."
