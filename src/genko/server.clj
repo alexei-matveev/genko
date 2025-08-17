@@ -2,6 +2,18 @@
 ;; Implements basic /v1/chat/completions and /v1/models endpoints of
 ;; the OpenAI server protocoll. Liberal in what it accepts.
 ;;
+;; To start the server, execute `start-server` from Cider in the
+;; `comment` section below, or run:
+;;
+;;   $ lein run --server
+;;
+;; in the CLI.  You can interact with the server from the CLI like
+;; this:
+;;
+;;   $ lein run --base-url=http://localhost:3000/v1
+;;
+;; or directly with Curl:
+;;
 ;;   $ curl -s http://localhost:3000/v1/models | jq
 ;;   $ curl -sXPOST http://localhost:3000/v1/chat/completions -d '{"messages":[{"role":"user","content":"are you human?"}]}' | jq
 ;;
@@ -236,18 +248,6 @@
       (wrap-cors :access-control-allow-origin [#".*"]
                  :access-control-allow-methods [:get :put :post :delete])))
 
-;; You can interact with the server from the CLI like this:
-;;
-;;   $ lein run --base-url=http://localhost:3000/v1
-;;
-;; To start the server, execute (start-server) from Cider, or run:
-;;
-;;   $ lein run --server
-;;
-;; in the CLI. Test streaming like this:
-;;
-;;   $ curl -NXPOST http://localhost:3000/v1/chat/completions -d '{"model":"genko","messages":[{"role":"user","content":"are you human?"}],"stream":true}'
-;;
 (defn start-server
   "Starts the HTTP server on the given port."
   ([]
