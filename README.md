@@ -4,6 +4,11 @@ Genko is a simple command-line tool for interactive chat with language
 models or other servers supporting OpenAI's protocoll. It maintains
 conversation context and supports multi-turn dialogue.
 
+Genko can also run as a local server that implements basic OpenAI-compatible
+endpoints (`/v1/chat/completions` and `/v1/models`). This allows you to interact
+with Genko using HTTP requests or tools like Curl, and makes it possible to use
+Genko as a backend for compatible clients.
+
 Foremost it is a project to learn the limits of Copilot for Clojure.
 
 ## Usage
