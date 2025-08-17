@@ -89,7 +89,7 @@
    ;; "sci.core/eval-string". See Babashka SCI [1].
    ;;
    ;; [1] https://github.com/babashka/SCI
-   "sci--eval-string"
+   "sci.core--eval-string"
    {:tool
     (fn [arguments]
       (let [arguments (json/parse-string arguments true)
