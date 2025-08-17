@@ -21,10 +21,10 @@
    "Math"                               ; <- we created that!
    "clojure.edn" "clojure.repl" "clojure.string" "clojure.walk" "clojure.template")
 
-  (count (eval-sexp '(clojure.repl/dir-fn (find-ns 'user)))) => 0
-  (count (eval-sexp '(clojure.repl/dir-fn (find-ns 'Math)))) => 3
-  (count (eval-sexp '(clojure.repl/dir-fn (find-ns 'clojure.core)))) => 563
-  (count (eval-sexp '(clojure.repl/dir-fn (find-ns 'clojure.repl)))) => 10
+  (eval-sexp '(count (clojure.repl/dir-fn (find-ns 'user)))) => 0
+  (eval-sexp '(count (clojure.repl/dir-fn (find-ns 'Math)))) => 3
+  (eval-sexp '(count (clojure.repl/dir-fn (find-ns 'clojure.core)))) => 563
+  (eval-sexp '(count (clojure.repl/dir-fn (find-ns 'clojure.repl)))) => 10
 
   ;; FIXME: what is wrong with that?
   (eval-sexp
