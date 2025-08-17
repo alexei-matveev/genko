@@ -21,12 +21,20 @@
    "Math"                               ; <- we created that!
    "clojure.edn" "clojure.repl" "clojure.string" "clojure.walk" "clojure.template")
 
-  (eval-sexp '(count (clojure.repl/dir-fn (find-ns 'user)))) => 0
+  (eval-sexp '(let [ns 'user] (count (clojure.repl/dir-fn (find-ns ns))))) => 0
   (eval-sexp '(count (clojure.repl/dir-fn (find-ns 'Math)))) => 3
   (eval-sexp '(count (clojure.repl/dir-fn (find-ns 'clojure.core)))) => 563
   (eval-sexp '(count (clojure.repl/dir-fn (find-ns 'clojure.repl)))) => 10
 
-  ;; FIXME: what is wrong with that?
+  ;; FIXME: somethig is wrong with (find-ns) inside of a lazy for-loop
+  ;; or seq instead of a (strickt?) let-form!
+  (eval-sexp '(for [ns ['user]] (find-ns ns))) ; => "No context found in: sci.ctx-store/*ctx*"
+  (eval-sexp '(map find-ns ['user]))           ; => Same!
+  (map find-ns ['user])                        ; => (#namespace[user])
+  (eval-sexp '(mapv find-ns ['user])) ; => [#object[sci.lang.Namespace 0x54f40d66 "user"]]
+
+  ;; Even without `find-ns` we still do need strict `mapv` here:
   (eval-sexp
-   '(for [ns ['user 'clojure.core]]
-      [ns (count (clojure.repl/dir-fn (find-ns ns)))])))
+   '(let [ns-objects (all-ns)
+          dirs (mapv clojure.repl/dir-fn ns-objects)]
+      (map count dirs))) => (0 563 12 3 2 10 21 10 2))
