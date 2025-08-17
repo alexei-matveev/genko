@@ -27,7 +27,10 @@
   (eval-sexp '(count (clojure.repl/dir-fn (find-ns 'clojure.repl)))) => 10
 
   ;; FIXME: somethig is wrong with (find-ns) inside of a lazy for-loop
-  ;; or seq instead of a (strickt?) let-form!
+  ;; or seq instead of a (strict?) let-form! See the issue in the
+  ;; upstream project [1].
+  ;;
+  ;; [1] https://github.com/babashka/sci/issues/989
   (eval-sexp '(for [ns ['user]] (find-ns ns))) ; => "No context found in: sci.ctx-store/*ctx*"
   (eval-sexp '(map find-ns ['user]))           ; => Same!
   (map find-ns ['user])                        ; => (#namespace[user])
