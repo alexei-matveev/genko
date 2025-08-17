@@ -35,7 +35,10 @@ inspiration:
 
 ## Backlog
 
-* [ ] CORS and/or Auth?
+* [ ] Mitigate Remote Code Execution in `(eval (read-string "untrusted
+      input of llm"))`?
+* [ ] CORS and/or Auth for the case of running the server at
+      `http://localhost:3000` and accessing it from the local browser?
 
 ## License
 

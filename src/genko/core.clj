@@ -76,7 +76,39 @@
                           :properties {}
                           :required []
                           :additionalProperties false}
-             :strict true}}})
+             :strict true}}
+
+
+   ;; No slashes are allowed in function names:
+   ;;
+   ;;   Expected a string that matches the pattern '^[a-zA-Z0-9_\\\\.-]+$'.
+   ;;
+   ;; Thus you cannot name a funciton
+   ;; "babashka.sci/eval-string". See Babashka SCI [1].
+   ;;
+   ;; [1] https://github.com/babashka/SCI
+   "babashka.sci.eval-string"
+   {:tool
+    (fn [arguments]
+      (let [arguments (json/parse-string arguments true)
+            {:keys [clojure-code]} arguments]
+
+        ;; FIXME: Remote Code execution in its purest form here! Also
+        ;; read-string ist unsafe!
+        (str
+         "#### Additional Context\n\n"
+         "Clojure code " clojure-code " evaluates to " (eval (read-string clojure-code))
+         " --- cite this but only when asked how you computed the value!")))
+
+    :schema
+    {:description "Evaluate Clojure code in restricted interpreter. Mostly for simple arithmetics."
+     :parameters {:type "object"
+                  :properties {:clojure-code
+                               {:type "string"
+                                :description "Clojure code consisting of arithmetic expressions."}}
+                  :required ["clojure-code"]
+                  :additionalProperties false}
+     :strict true}}})
 
 
 ;; `chat-completion` now takes a list of messages as context, not just
@@ -99,9 +131,10 @@
       (pp/pprint {:Q body :A result}))
     (get-in result [:choices 0 :message])))
 
-;; The output of `chat-completion`, a message, may have different
-;; structure. Here two most relevant cases:
 (comment
+  ;; The output of `chat-completion`, a message, may have different
+  ;; structure. Here two most relevant cases:
+  ;;
   ;; 1. Text content:
   {:content "I am an AI-powered assistant.",
    :role "assistant",
@@ -117,9 +150,41 @@
                  :id "call_xyz",
                  :type "function"}],
    :function_call nil,
+   :annotations []}
+
+  ;; Example of a tool call:
+  (chat-completion nil [{:role "user", :content "Factorial of 7?"}])
+  =>
+  {:content nil,
+   :role "assistant",
+   :tool_calls [{:function {:arguments "{\"clojure-code\":\"(reduce * (range 1 8))\"}",
+                            :name "sci-eval-string"},
+                 :id "call_lRQL3vvAb4XyUjChIep6qdh1",
+                 :type "function"}],
+   :function_call nil,
    :annotations []})
 
 
+;; This implementation the function `chat-with-tools` hides from the
+;; caller what were the exact results of the tool calls and even the
+;; mere fact that the tools have been used. The context with the
+;; transcript of all the tool calls is not even visible to the
+;; caller. It may or may not be what the caller wants. Here is a use
+;; case when the transcript would have been useful:
+;;
+;;   USER: sin(1.1)
+;;   ASSISTANT: sin(1.1) ≈ 0.8912
+;;   USER: how do you know that?
+;;   ASSISTANT: I calculated sin(1.1) using the mathematical sine
+;;     function in Clojure code: `(Math/sin 1.1)`, which evaluates to
+;;     approximately 0.8912.
+;;    USER: more digits?
+;;   ASSISTANT: Sure! Using the calculation from earlier, the value of
+;;     sin(1.1) is approximately: 0.8912073600614354
+;;
+;; Without transcript LLM will possibly tell you a story about Taylor
+;; series when you ask it how it arrived at the result.
+;;
 (defn chat-with-tools
   "Let LLM chat with our tools, return when LLM responds with actual
   content"
@@ -151,10 +216,7 @@
           (recur messages))
 
         ;; Regular case, LLM did not ask for tool calls, Just return
-        ;; the response, hopefully with actual content. Hm, the
-        ;; context with the transcript of all the tool calls is not
-        ;; even visible to the caller. It may or may not be what the
-        ;; caller wants.
+        ;; the response, hopefully with actual content.
         response))))
 
 (comment
