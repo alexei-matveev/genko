@@ -8,21 +8,25 @@
                                         'cos Math/cos
                                         'pow Math/pow}}}))
 
+;; For internal use:
+(defn- eval-sexp [sexp]
+  (eval-string (str sexp)))
+
 ;; To get an idea about "attack surface" without explicit allow-list:
-;;
-;; (eval-string "(all-ns)") =>
-;; (#object[sci.lang.Namespace ... "user"]
-;;  #object[sci.lang.Namespace ... "clojure.core"]
-;;  #object[sci.lang.Namespace ... "clojure.set"]
-;;  #object[sci.lang.Namespace ... "Math"]               <- We created that!
-;;  #object[sci.lang.Namespace ... "clojure.edn"]
-;;  #object[sci.lang.Namespace ... "clojure.repl"]
-;;  #object[sci.lang.Namespace ... "clojure.string"]
-;;  #object[sci.lang.Namespace ... "clojure.walk"]
-;;  #object[sci.lang.Namespace ... "clojure.template"])
 (comment
-  (eval-string "(count (all-ns))") => 9
-  (count (eval-string "(clojure.repl/dir-fn (find-ns 'user))")) => 0
-  (count (eval-string "(clojure.repl/dir-fn (find-ns 'Math))")) => 3
-  (count (eval-string "(clojure.repl/dir-fn (find-ns 'clojure.core))")) => 563
-  (count (eval-string "(clojure.repl/dir-fn (find-ns 'clojure.repl))")) => 10)
+  (eval-sexp '(count (all-ns))) => 9
+  (eval-sexp '(map str (all-ns)))
+  =>
+  ("user" "clojure.core" "clojure.set"
+   "Math"                               ; <- we created that!
+   "clojure.edn" "clojure.repl" "clojure.string" "clojure.walk" "clojure.template")
+
+  (count (eval-sexp '(clojure.repl/dir-fn (find-ns 'user)))) => 0
+  (count (eval-sexp '(clojure.repl/dir-fn (find-ns 'Math)))) => 3
+  (count (eval-sexp '(clojure.repl/dir-fn (find-ns 'clojure.core)))) => 563
+  (count (eval-sexp '(clojure.repl/dir-fn (find-ns 'clojure.repl)))) => 10
+
+  ;; FIXME: what is wrong with that?
+  (eval-sexp
+   '(for [ns ['user 'clojure.core]]
+      [ns (count (clojure.repl/dir-fn (find-ns ns)))])))
