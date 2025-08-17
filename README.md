@@ -19,6 +19,30 @@ Build executable in `./bin/genko`:
 
     $ just build
 
+### Running the server
+
+You can start the server with:
+
+    $ lein run --server
+
+Or from Cider by evaluating `(start-server)` in the `comment` section of `src/genko/server.clj`.
+
+By default, the server listens on port 3000.
+
+### Interacting with the server
+
+You can interact with the server from the CLI by specifying the base URL:
+
+    $ lein run --base-url=http://localhost:3000/v1
+
+Or directly with Curl:
+
+    $ curl -s http://localhost:3000/v1/models | jq
+    $ curl -sXPOST http://localhost:3000/v1/chat/completions -d '{"messages":[{"role":"user","content":"are you human?"}]}' | jq
+
+For streaming responses (SSE):
+
+    $ curl -vNXPOST http://localhost:3000/v1/chat/completions -d '{"messages":[{"role":"user","content":"tell me a story!"}],"stream":true}'
 
 ## Other CLI interfaces
 
