@@ -168,6 +168,26 @@
    :annotations []})
 
 
+;; Call Tools available in the global `tool-map`.
+(defn- call-tools [tool-calls]
+  (for [tool-call tool-calls
+        :let [{:keys [id function]} tool-call
+              {:keys [name arguments]} function
+              tool (:tool (tool-map name))]]
+
+    ;; Value might be to long a text to log every tyme. In fact
+    ;; `arguments` ist also potentially unbondend string from
+    ;; untrusted source!
+    (do
+      (log/info "tool call" name ":" arguments)
+      ;; FIXME: handle exceptions?
+      (let [value (tool arguments)]
+        {:role "tool"
+         :name name
+         :tool_call_id id
+         :content value}))))
+
+
 ;; This implementation of the `chat-with-tools` function hides from
 ;; the caller the exact results of the tool calls, as well as the fact
 ;; that the tools were used at all. The context containing the
@@ -205,15 +225,8 @@
         (let [messages (conj messages response)
 
               ;; Now append results of tool calls:
-              messages (into messages
-                             (for [tool-call tool-calls
-                                   :let [{:keys [id function]} tool-call
-                                         {:keys [name arguments]} function
-                                         tool (:tool (tool-map name))]]
-                               {:role "tool"
-                                :name name
-                                :tool_call_id id
-                                :content (tool arguments)}))]
+              messages (into messages (call-tools tool-calls))]
+
           ;; FIXME: potentially infinite recursion here if LLM never
           ;; stops calling tools!
           (recur messages))
@@ -268,15 +281,7 @@
         ;; tool messages responding to each `tool_call_id`.  Ideally one
         ;; would need to ask the consent of the user to execute tools.
         (if-let [tool-calls (seq (:tool_calls response))]
-          (let [messages (into messages
-                               (for [tool-call tool-calls
-                                     :let [{:keys [id function]} tool-call
-                                           {:keys [name arguments]} function
-                                           tool (:tool (tool-map name))]]
-                                 {:role "tool"
-                                  :name name
-                                  :tool_call_id id
-                                  :content (tool arguments)}))]
+          (let [messages (into messages (call-tools tool-calls))]
             ;; FIXME: potentially infinite recursion here if LLM never
             ;; stops calling tools!
             (recur :assistant messages))
