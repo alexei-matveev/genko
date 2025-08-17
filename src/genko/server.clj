@@ -125,9 +125,9 @@
 (comment
   ;; Another way to split text into "words" keeping the
   ;; whitespace. Here (?: ...) is a non-capturing regex group.
-  (re-seq #"\S+(?:\s+)?" "One two  three?")
+  (into [] (re-seq #"\S+(?:\s+)?" "One two  three?"))
   =>
-  ("One " "two  " "three?"))
+  ["One " "two  " "three?"])
 
 
 ;; Simulate streaming by splitting the reply into words
