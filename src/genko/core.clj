@@ -7,6 +7,7 @@
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.pprint :as pp]
+   [sci.core :as sci]
    [clojure.tools.logging :as log]))
 
 
@@ -85,19 +86,20 @@
    ;;   Expected a string that matches the pattern '^[a-zA-Z0-9_\\\\.-]+$'.
    ;;
    ;; Thus you cannot name a funciton
-   ;; "babashka.sci/eval-string". See Babashka SCI [1].
+   ;; "sci.core/eval-string". See Babashka SCI [1].
    ;;
    ;; [1] https://github.com/babashka/SCI
-   "babashka.sci.eval-string"
+   "sci--eval-string"
    {:tool
     (fn [arguments]
       (let [arguments (json/parse-string arguments true)
             {:keys [clojure-code]} arguments]
 
-        ;; FIXME: Remote Code execution in its purest form here! Also
-        ;; read-string ist unsafe!
-        (let [value (eval (read-string clojure-code))]
-          (log/warn "babashka.sci.eval-string:" clojure-code "=>" value)
+        ;; FIXME: Remote Code execution in its purest form here! SCI
+        ;; ist somewhat better than a plain (eval (read-string ...))
+        ;; but still!
+        (let [value (sci/eval-string clojure-code)]
+          (log/warn "sci.core--eval-string:" clojure-code "=>" value)
           (str
            "#### Additional Context\n\n"
            "Clojure code " clojure-code " evaluates to " value
