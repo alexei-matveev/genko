@@ -94,7 +94,9 @@
      :function (assoc schema :name fn-name)}))
 
 
-;; Call Tools available in the global `tool-map`.
+;; Call tools available in the global `tool-map`. If we ever have a
+;; luxus problem of having too many tool calls, one could even call
+;; them in parallel here!
 (defn call-tools [tool-calls]
   (for [tool-call tool-calls
         :let [{:keys [id function]} tool-call
@@ -106,7 +108,7 @@
     ;; untrusted source!
     (do
       (log/info "tool call" name ":" arguments)
-      ;; FIXME: handle exceptions?
+
       (let [value (try
                     (tool arguments)
                     (catch Exception e
