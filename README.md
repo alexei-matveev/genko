@@ -24,19 +24,12 @@ Build executable in `./bin/genko`:
 
     $ just build
 
-### Running the server
-
 You can start the server with:
 
     $ genko --server
 
-Or from Cider by evaluating `(start-server)` in the `comment` section of `src/genko/server.clj`.
-
-By default, the server listens on port 3000.
-
-### Interacting with the server
-
-You can interact with the server from the CLI by specifying the base URL:
+By default, the server listens on port 3000.  You can interact with
+the server from the CLI by specifying the base URL:
 
     $ genko --base-url=http://localhost:3000/v1
 
