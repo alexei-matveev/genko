@@ -98,7 +98,10 @@
         ;; FIXME: Remote Code execution in its purest form here! SCI
         ;; ist somewhat better than a plain (eval (read-string ...))
         ;; but still!
-        (let [value (sci/eval-string clojure-code)]
+        (let [value (sci/eval-string clojure-code
+                                     {:namespaces {'Math {'sin Math/sin
+                                                          'cos Math/cos
+                                                          'pow Math/pow}}})]
           (log/warn "sci.core--eval-string:" clojure-code "=>" value)
           (str
            "#### Additional Context\n\n"
