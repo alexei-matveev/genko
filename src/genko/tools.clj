@@ -68,12 +68,16 @@
         ;; FIXME: Remote Code execution in its purest form here! SCI
         ;; ist somewhat better than a plain (eval (read-string ...))
         ;; but still!
-        (let [value (sci/eval-string clojure-code)]
-          (log/warn "sci--eval-string:" clojure-code "=>" value)
+        (let [value (sci/eval-string clojure-code)
+              text-value (pr-str value)]
+          (log/warn "sci--eval-string:" clojure-code "=>" text-value)
+          ;; NOTE: eventuell shorten the `clojure-code` in text in
+          ;; case it is too long? It is anyway present in the context
+          ;; as `arguments`!
           (str
            "#### Additional Context\n\n"
-           "Clojure code " clojure-code " evaluates to " value
-           " --- cite this but only when asked how you computed the value!"))))
+           "Clojure code\n\n" clojure-code "\n\nevaluates to\n\n" text-value
+           "\n\nCite this but only when asked how you computed the value!"))))
 
     :schema
     {:description "Evaluate Clojure code in restricted interpreter. Mostly for simple arithmetics."
