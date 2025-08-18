@@ -36,11 +36,11 @@
   ;; (sci.ctx-store/reset-ctx! nil)
 
   (eval-sexp '(count (all-ns))) => 9
-  (eval-sexp '(doall (map str (all-ns)))) ; does not fail without `doall`
+  (eval-sexp '(mapv str (all-ns)))
   =>
-  ("user" "clojure.core" "clojure.set"
+  ["user" "clojure.core" "clojure.set"
    "Math"                               ; <- we created that!
-   "clojure.edn" "clojure.repl" "clojure.string" "clojure.walk" "clojure.template")
+   "clojure.edn" "clojure.repl" "clojure.string" "clojure.walk" "clojure.template"]
 
   ;; Number of bindings pro namespace. NOTE: `doall` *inside* SCI is
   ;; important for lazy sequence such as the `for`-expression here!
