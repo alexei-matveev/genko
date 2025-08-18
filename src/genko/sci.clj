@@ -66,6 +66,5 @@
 
   ;; Alternatively use `mapv` instead of lazy seq:
   (eval-sexp
-   '(let [ns-objects (all-ns)
-          dirs (mapv clojure.repl/dir-fn ns-objects)]
+   '(let [dirs (mapv clojure.repl/dir-fn (all-ns))]
       (map count dirs))) => (0 563 12 3 2 10 21 10 2))
