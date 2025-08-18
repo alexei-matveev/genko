@@ -44,8 +44,8 @@
 
   ;; Number of bindings pro namespace. NOTE: `doall` *inside* SCI is
   ;; important for lazy sequence such as the `for`-expression here!
-  ;; once you leave the dynamic context of the SCI you cannot count on
-  ;; daynamic `*ctx*` having a correct value!
+  ;; Once you leave the dynamic context of the SCI you cannot count on
+  ;; dynamic `*ctx*` having a correct value!
   ;;
   ;;     (eval-sexp '(for [ns ['user]] (find-ns ns)))   ; WRONG!
   ;;     => Exception with "No context found in: sci.ctx-store/*ctx* ..."
