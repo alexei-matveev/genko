@@ -7,17 +7,29 @@ conversation context and supports multi-turn dialogue.
 Genko can also run as a local server that implements basic
 OpenAI-compatible endpoints (`/v1/chat/completions` and
 `/v1/models`). This allows you to interact with Genko using HTTP
-requests or tools like Curl, and makes it possible to use Genko as a
-backend for compatible clients, including itself.
+requests or tools like Curl or [Open
+WebUI](https://github.com/open-webui/open-webui), and makes it
+possible to use Genko as a backend for compatible clients, including
+itself.
+
+Genko additionally exposes a sandboxed Clojure execution environment
+as an LLM tool, allowing language models to evaluate Clojure code via
+function/tool calls.  This enables advanced workflows where the LLM
+can request code evaluation (e.g., for arithmetic, data processing, or
+logic) and receive the result, all within a restricted and controlled
+interpreter (Babashka [SCI](https://github.com/babashka/sci)).
+
+![FizzBuzz in Open WenUI](doc/screenshot.png)
 
 Foremost it is a project to learn the limits of Copilot for Clojure.
 
+
 ## Usage
 
-You may want to set `OPENAI_BASE_URL` for the upstream LLM:
+You may want set credentials for the upstream LLM:
 
-    $ OPENAI_BASE_URL=https://api.example.com/v1
-    $ OPENAI_API_KEY=sk-...
+    $ export OPENAI_BASE_URL=https://api.example.com/v1
+    $ export OPENAI_API_KEY=sk-...
     $ lein run
 
 Build executable in `./bin/genko`:
@@ -60,7 +72,9 @@ inspiration:
 
 For the case of LLMs writing their own tools see also:
 
-* https://lucumr.pocoo.org/2025/8/18/code-mcps/
+* [MCP doesn't need tools, it needs
+  code](https://lucumr.pocoo.org/2025/8/18/code-mcps/) and the HN
+  [Discussion](https://news.ycombinator.com/item?id=44938920)
 
 
 ## Backlog
