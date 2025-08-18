@@ -58,6 +58,10 @@ inspiration:
   [Tools](https://simonwillison.net/2025/May/27/llm-tools/)
 * https://github.com/baalimago/clai
 
+For the case of LLMs writing their own tools see also:
+
+* https://lucumr.pocoo.org/2025/8/18/code-mcps/
+
 
 ## Backlog
 
