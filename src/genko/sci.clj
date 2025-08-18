@@ -19,13 +19,19 @@
 ;; allow-list. Much the staff here is to decipher the *ctx* issue with
 ;; lazy seqs.
 (comment
-  ;; NOTE: Closures  such as (fn []  (find-ns 'user)) or calls  to the
-  ;; likes of  `find-ns` inside of a  for-loop (lazy seq) are  no more
-  ;; closures over "SCI context" sci.ctx-store/*ctx*. I dont quite get
-  ;; it, but see the issue & changelog in the upstream project [1, 2].
+  ;; NOTE: Closures such as (fn [] (find-ns 'user)) or calls to the
+  ;; likes of `find-ns` rely on "dynamic SCI context",
+  ;; sci.ctx-store/*ctx*. I dont quite feel it, but see the issue &
+  ;; changelog in the upstream project [1, 2].
+  ;;
+  ;; The really  important suff  is that  with lazy  sequences leaking
+  ;; outside of SCI  the tools like `find-ns` are  not more guaranteed
+  ;; to find the correct context in dynamic var `*ctx*` [3]. Hence the
+  ;; error message: "No context found in: sci.ctx-store/*ctx* ..."
   ;;
   ;; [1] https://github.com/babashka/sci/issues/989
   ;; [2] https://github.com/babashka/sci/blob/master/CHANGELOG.md#01046-2025-06-18
+  ;; [3] https://github.com/babashka/sci?tab=readme-ov-file#laziness
 
   ;; (def _ctx (sci/init {}))
   ;; (keys _ctx) =>
