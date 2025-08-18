@@ -49,6 +49,9 @@ See also Aider, Codex and Claude Code CLIs and other interfaces for
 inspiration:
 
 * https://aider.chat/
+* https://github.com/sst/opencode
+* https://github.com/QwenLM/qwen-code
+* https://github.com/google-gemini/gemini-cli
 * https://github.com/openai/codex
 * https://docs.anthropic.com/en/docs/claude-code/sdk
 * https://llm.datasette.io with
