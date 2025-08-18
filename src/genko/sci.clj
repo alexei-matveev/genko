@@ -4,12 +4,23 @@
   (:require
    [sci.core :as sci]))
 
+;; Not all of ~65 methods do math:
+(def ^:private math-symbols
+  '[abs sin cos tan atan2 sqrt log log10 pow exp min max floor ceil
+    rint round addExact decrementExact incrementExact multiplyExact multiplyHigh unsignedMultiplyHigh
+    negateExact subtractExact fma copySign signum clamp scalb getExponent floorMod asin acos atan
+    cbrt IEEEremainder floorDiv ceilDiv ceilMod sinh cosh tanh hypot expm1 log1p toRadians toDegrees
+    random divideExact floorDivExact ceilDivExact toIntExact multiplyFull absExact ulp
+    nextAfter nextUp nextDown equals toString
+    ;; hashCode getClass
+    ;; notify notifyAll wait
+    ])
 
 (defn eval-string [clojure-code]
   (sci/eval-string clojure-code
-                   {:namespaces {'Math {'sin Math/sin
-                                        'cos Math/cos
-                                        'pow Math/pow}}}))
+                   {:namespaces {'Math (into {}
+                                             (for [s math-symbols]
+                                               [s (symbol (name 'Math) (name s))]))}}))
 
 ;; For debugging:
 (defn- eval-sexp [sexp]
@@ -19,6 +30,17 @@
 ;; allow-list. Much the staff here is to decipher the *ctx* issue with
 ;; lazy seqs.
 (comment
+  (count
+   (distinct
+    (for [method (.getMethods java.lang.Math)]
+      (symbol (.getName method))))) ; => 65
+
+  ;; FIXME: what am I doing wrong?
+  (Math/log10 1000.0) => 3.0
+  (Math/nextUp 1.0) => 1.0000000000000002
+  (eval-sexp '(Math/log10 1000.0)) => nil
+  (eval-sexp '(Math/nextUp 1.0)) => nil
+
   ;; NOTE: Closures such as (fn [] (find-ns 'user)) or calls to the
   ;; likes of `find-ns` rely on "dynamic SCI context",
   ;; sci.ctx-store/*ctx*. I dont quite feel it, but see the issue &
@@ -63,7 +85,7 @@
   (["user" 0]
    ["clojure.core" 563]
    ["clojure.set" 12]
-   ["Math" 3]                           ; 0 <> 3 without `doall`
+   ["Math" 60]
    ["clojure.edn" 2]
    ["clojure.repl" 10]
    ["clojure.string" 21]
@@ -73,4 +95,4 @@
   ;; Alternatively use `mapv` instead of lazy seq:
   (eval-sexp
    '(let [dirs (mapv clojure.repl/dir-fn (all-ns))]
-      (mapv count dirs))) => [0 563 12 3 2 10 21 10 2])
+      (mapv count dirs))) => [0 563 12 60 2 10 21 10 2])
