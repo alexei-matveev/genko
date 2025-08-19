@@ -1,11 +1,11 @@
 (ns genko.sci
   "So far a very slim interface to sandboxed Babashka Small Clojure
   Interpreter (SCI)"
-  (:require
-   [sci.core :as sci]))
+  (:require [sci.core :as sci]
+            [clojure.math]))
 
 ;; Not all of ~65 methods do math:
-(def ^:private math-symbols
+#_(def ^:private math-symbols
   '[abs sin cos tan atan2 sqrt log log10 pow exp min max floor ceil
     rint round addExact decrementExact incrementExact multiplyExact multiplyHigh unsignedMultiplyHigh
     negateExact subtractExact fma copySign signum clamp scalb getExponent floorMod asin acos atan
@@ -17,10 +17,21 @@
     ])
 
 (defn eval-string [clojure-code]
-  (sci/eval-string clojure-code
-                   {:namespaces {'Math (into {}
-                                             (for [s math-symbols]
-                                               [s (symbol (name 'Math) (name s))]))}}))
+  (let [ns (sci/create-ns 'clojure.math)
+        sci-ns (sci/copy-ns clojure.math ns)
+        ;; FIXME: Math <> clojure.math:
+        ctx (sci/init {:namespaces {'clojure.math sci-ns}
+                       :ns-aliases {'Math 'clojure.math}})]
+    (sci/eval-string* ctx clojure-code)
+    ;; FIXME: we need to *resolve* symbols like Math/sin here!
+    #_(sci/eval-string clojure-code
+                       {:namespaces (into {}
+                                          (for [s math-symbols]
+                                            [s (symbol (name 'Math) (name s))]))})))
+
+;; how do I lookup the function Math/sin having the namespaces symbols
+;; 'Math and 'sin in clojure?
+;; (resolve 'Math)
 
 ;; For debugging:
 (defn- eval-sexp [sexp]
@@ -33,13 +44,23 @@
   (count
    (distinct
     (for [method (.getMethods java.lang.Math)]
-      (symbol (.getName method))))) ; => 65
+      (symbol (.getName method)))))     ; => 65
 
-  ;; FIXME: what am I doing wrong?
+  (let [ns (sci/create-ns 'clojure.math)
+        sci-ns (sci/copy-ns clojure.math ns {:exclude []})
+        ctx (sci/init {:namespaces {'clojure.math sci-ns}
+                       :ns-aliases {'Math 'clojure.math}})]
+    (sci/eval-string* ctx "(Math/sin 1.0)")) => 0.8414709848078965
+
+  ;; FIXME: clojre.math <> java.lang.Math, only an approximation! And
+  ;; LLMs know and use java.lang.Math for arithmetics.
+  (eval-sexp '(clojure.math/sin 1.0)) => 0.8414709848078965
+  (eval-sexp '(Math/sin 1.0)) => 0.8414709848078965
   (Math/log10 1000.0) => 3.0
+  (eval-sexp '(Math/log10 1000.0)) => 3.0
   (Math/nextUp 1.0) => 1.0000000000000002
-  (eval-sexp '(Math/log10 1000.0)) => nil
-  (eval-sexp '(Math/nextUp 1.0)) => nil
+  (eval-sexp '(Math/next-up 1.0)) => 1.0000000000000002
+  (eval-sexp '(Math/nextUp 1.0)) ; => Could not resolve symbol: Math/nextUp
 
   ;; NOTE: Closures such as (fn [] (find-ns 'user)) or calls to the
   ;; likes of `find-ns` rely on "dynamic SCI context",
@@ -67,7 +88,7 @@
   (eval-sexp '(mapv str (all-ns)))
   =>
   ["user" "clojure.core" "clojure.set"
-   "Math"                               ; <- we created that!
+   "clojure.math"
    "clojure.edn" "clojure.repl" "clojure.string" "clojure.walk" "clojure.template"]
 
   ;; Number of bindings pro namespace. NOTE: `doall` *inside* SCI is
@@ -85,7 +106,7 @@
   (["user" 0]
    ["clojure.core" 563]
    ["clojure.set" 12]
-   ["Math" 60]
+   ["clojure.math" 45]
    ["clojure.edn" 2]
    ["clojure.repl" 10]
    ["clojure.string" 21]
@@ -95,4 +116,4 @@
   ;; Alternatively use `mapv` instead of lazy seq:
   (eval-sexp
    '(let [dirs (mapv clojure.repl/dir-fn (all-ns))]
-      (mapv count dirs))) => [0 563 12 60 2 10 21 10 2])
+      (mapv count dirs))) => [0 563 12 45 2 10 21 10 2])
