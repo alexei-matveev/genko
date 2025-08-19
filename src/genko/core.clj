@@ -67,33 +67,38 @@
 
 
 (comment
+  ;; Example of a first chunk:
+  ({:id "chatcmpl-C6ISgK0mF4LROonu3hrkgGINeMXmJ",
+    :created 1755616970,
+    :model "gpt-4.1-2025-04-14",
+    :object "chat.completion.chunk",
+    :system_fingerprint "fp_c79ab13e31",
+    :choices [{:content_filter_results {#_(...)},
+               :index 0,
+               :delta {:content "No", :role "assistant"}}]}
+
+   ;; Example of the last chunk preceeding the SSE sentinel "[DONE]":
+   {:id "chatcmpl-C6ISgK0mF4LROonu3hrkgGINeMXmJ",
+    :created 1755616970,
+    :model "gpt-4.1-2025-04-14",
+    :object "chat.completion.chunk",
+    :system_fingerprint "fp_c79ab13e31",
+    :choices [{:finish_reason "stop",
+               :index 0,
+               :delta {}}]})
+
   ;; The answer for such a simple question comes back in 25-50 chunks!
-  ;; Do we really want to cause that much work?
+  ;; Do we really want to cause that much work? Note that (the last?)
+  ;; delta might be nil!
   (let [chunks (api-stream nil
                            "/chat/completions"
                            {:model "gpt-4.1"
                             :messages [{:role "user", :content "are you human?"}]
-                            :stream true})]
-    [(count chunks) #_(first chunks) #_(last chunks)])
-  ;; =>
-  ;; ({:id "chatcmpl-C6ISgK0mF4LROonu3hrkgGINeMXmJ",
-  ;;   :created 1755616970,
-  ;;   :model "gpt-4.1-2025-04-14",
-  ;;   :object "chat.completion.chunk",
-  ;;   :system_fingerprint "fp_c79ab13e31",
-  ;;   :choices [{:content_filter_results {...},
-  ;;              :index 0,
-  ;;              :delta {:content "No", :role "assistant"}}]}
-  ;;  ...
-  ;;  {:id "chatcmpl-C6ISgK0mF4LROonu3hrkgGINeMXmJ",
-  ;;   :created 1755616970,
-  ;;   :model "gpt-4.1-2025-04-14",
-  ;;   :object "chat.completion.chunk",
-  ;;   :system_fingerprint "fp_c79ab13e31",
-  ;;   :choices [{:finish_reason "stop",
-  ;;              :index 0,
-  ;;              :delta {}}]})
-  )
+                            :stream true})
+        deltas (for [chunk chunks]
+                 (-> chunk :choices (get 0) :delta :content))]
+    ;; [(count chunks) #_(first chunks) #_(last chunks)]
+    deltas))
 
 ;; `chat-completion` now takes a list of messages as context, not just
 ;; a single prompt.
