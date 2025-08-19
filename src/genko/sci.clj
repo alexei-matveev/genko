@@ -4,34 +4,17 @@
   (:require [sci.core :as sci]
             [clojure.math]))
 
-;; Not all of ~65 methods do math:
-#_(def ^:private math-symbols
-  '[abs sin cos tan atan2 sqrt log log10 pow exp min max floor ceil
-    rint round addExact decrementExact incrementExact multiplyExact multiplyHigh unsignedMultiplyHigh
-    negateExact subtractExact fma copySign signum clamp scalb getExponent floorMod asin acos atan
-    cbrt IEEEremainder floorDiv ceilDiv ceilMod sinh cosh tanh hypot expm1 log1p toRadians toDegrees
-    random divideExact floorDivExact ceilDivExact toIntExact multiplyFull absExact ulp
-    nextAfter nextUp nextDown equals toString
-    ;; hashCode getClass
-    ;; notify notifyAll wait
-    ])
 
 (defn eval-string [clojure-code]
   (let [ns (sci/create-ns 'clojure.math)
         sci-ns (sci/copy-ns clojure.math ns)
-        ;; FIXME: Math <> clojure.math:
         ctx (sci/init {:namespaces {'clojure.math sci-ns}
-                       :ns-aliases {'Math 'clojure.math}})]
-    (sci/eval-string* ctx clojure-code)
-    ;; FIXME: we need to *resolve* symbols like Math/sin here!
-    #_(sci/eval-string clojure-code
-                       {:namespaces (into {}
-                                          (for [s math-symbols]
-                                            [s (symbol (name 'Math) (name s))]))})))
+                       ;; FIXME: not all methods do math:
+                       :classes {'java.lang.Math java.lang.Math
+                                 'Math java.lang.Math}
+                       :ns-aliases {'xxx 'clojure.math}})]
+    (sci/eval-string* ctx clojure-code)))
 
-;; how do I lookup the function Math/sin having the namespaces symbols
-;; 'Math and 'sin in clojure?
-;; (resolve 'Math)
 
 ;; For debugging:
 (defn- eval-sexp [sexp]
@@ -49,18 +32,18 @@
   (let [ns (sci/create-ns 'clojure.math)
         sci-ns (sci/copy-ns clojure.math ns {:exclude []})
         ctx (sci/init {:namespaces {'clojure.math sci-ns}
-                       :ns-aliases {'Math 'clojure.math}})]
+                       :classes {'java.lang.Math java.lang.Math
+                                 'Math java.lang.Math}
+                       :ns-aliases {'unused 'clojure.math}})]
     (sci/eval-string* ctx "(Math/sin 1.0)")) => 0.8414709848078965
 
   ;; FIXME: clojre.math <> java.lang.Math, only an approximation! And
   ;; LLMs know and use java.lang.Math for arithmetics.
   (eval-sexp '(clojure.math/sin 1.0)) => 0.8414709848078965
   (eval-sexp '(Math/sin 1.0)) => 0.8414709848078965
-  (Math/log10 1000.0) => 3.0
   (eval-sexp '(Math/log10 1000.0)) => 3.0
-  (Math/nextUp 1.0) => 1.0000000000000002
-  (eval-sexp '(Math/next-up 1.0)) => 1.0000000000000002
-  (eval-sexp '(Math/nextUp 1.0)) ; => Could not resolve symbol: Math/nextUp
+  (eval-sexp '(Math/nextUp 1.0)) => 1.0000000000000002
+  (eval-sexp '(clojure.math/next-up 1.0)) => 1.0000000000000002
 
   ;; NOTE: Closures such as (fn [] (find-ns 'user)) or calls to the
   ;; likes of `find-ns` rely on "dynamic SCI context",
