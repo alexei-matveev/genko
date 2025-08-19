@@ -5,7 +5,8 @@
    [clj-http.client :as client]
    [clojure.string :as str]
    [clojure.pprint :as pp]
-   [clojure.tools.logging :as log]))
+   [clojure.tools.logging :as log]
+   [clojure.java.io :as io]))
 
 
 (def ^:private default-options
@@ -31,6 +32,68 @@
         result (json/parse-string (:body response) true)]
     result))
 
+
+;; Yet unused:
+(defn api-stream
+  "Call OpenAI-compatible API endpoint with SSE streaming, returning a
+  lazy sequence of parsed JSON chunks."
+  [options endpoint body]
+  (let [options (or options default-options)
+        api-key (:api-key options)
+        base-url (:base-url options)
+        url (str base-url endpoint)
+        headers {"Authorization" (str "Bearer " api-key)
+                 "Content-Type" "application/json"}
+        body-string (json/generate-string body)
+        ;; FIXME: (if (:stream body) ...)? Also streaming might only
+        ;; make sense for /v1/completions. But this is the only
+        ;; endpoint we use here so far.
+        response (client/post url {:headers headers
+                                   :body body-string
+                                   :as :stream ; want body as InputStream
+                                   :throw-exceptions true})]
+    (let [reader (io/reader (:body response))]
+      (letfn [(sse-lines []
+                (lazy-seq
+                 (when-let [line (.readLine reader)]
+                   (cond
+                     (.startsWith line "data: ")
+                     (let [data (subs line 6)]
+                       (if-not (= data "[DONE]")
+                         (cons (json/parse-string data true)
+                               (sse-lines))))
+                     :else (sse-lines)))))]
+        (sse-lines)))))
+
+
+(comment
+  ;; The answer for such a simple question comes back in 25-50 chunks!
+  ;; Do we really want to cause that much work?
+  (let [chunks (api-stream nil
+                           "/chat/completions"
+                           {:model "gpt-4.1"
+                            :messages [{:role "user", :content "are you human?"}]
+                            :stream true})]
+    [(count chunks) #_(first chunks) #_(last chunks)])
+  ;; =>
+  ;; ({:id "chatcmpl-C6ISgK0mF4LROonu3hrkgGINeMXmJ",
+  ;;   :created 1755616970,
+  ;;   :model "gpt-4.1-2025-04-14",
+  ;;   :object "chat.completion.chunk",
+  ;;   :system_fingerprint "fp_c79ab13e31",
+  ;;   :choices [{:content_filter_results {...},
+  ;;              :index 0,
+  ;;              :delta {:content "No", :role "assistant"}}]}
+  ;;  ...
+  ;;  {:id "chatcmpl-C6ISgK0mF4LROonu3hrkgGINeMXmJ",
+  ;;   :created 1755616970,
+  ;;   :model "gpt-4.1-2025-04-14",
+  ;;   :object "chat.completion.chunk",
+  ;;   :system_fingerprint "fp_c79ab13e31",
+  ;;   :choices [{:finish_reason "stop",
+  ;;              :index 0,
+  ;;              :delta {}}]})
+  )
 
 ;; `chat-completion` now takes a list of messages as context, not just
 ;; a single prompt.
@@ -183,4 +246,3 @@
           (do
             (println "ASSISTANT:" (:content response))
             (recur :user messages)))))))
-
