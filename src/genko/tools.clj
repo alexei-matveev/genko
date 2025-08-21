@@ -2,6 +2,7 @@
   (:require
    [genko.sci :as sci]
    [cheshire.core :as json]
+   [hiccup2.core :as h]
    [clojure.tools.logging :as log]))
 
 ;; See OpenAI function calling [1].   Beware of the schema differences
@@ -71,24 +72,34 @@
         (let [value (sci/eval-string clojure-code)
               text-value (pr-str value)]
           (log/warn "sci--eval-string:" clojure-code "=>" text-value)
-          ;; NOTE: eventuell shorten the `clojure-code` in text in
+          ;; NOTE: eventually shorten the `clojure-code` in text in
           ;; case it is too long? It is anyway present in the context
           ;; as `arguments`!
-          (str
-           "#### Additional Context\n\n"
-           "Clojure code\n\n" clojure-code "\n\nevaluates to\n\n" text-value
-           "\n\nCite this but only when asked how you computed the value!"))))
+          (if true
+            ;; As HTML string, because "Cannot JSON encode object of
+            ;; class: class hiccup.util.RawString"
+            (str
+             (h/html
+                 [:details
+                  [:summary "Additional context"]
+                  [:p "Clojure code " [:clojure clojure-code] " evaluates to " [:clojure text-value]]
+                  [:p "Cite this but only when asked how you computed the value!"]]))
+            ;; As Markdown:
+            (str
+             "#### Additional Context\n\n"
+             "Clojure code\n\n" clojure-code "\n\nevaluates to\n\n" text-value
+             "\n\nCite this but only when asked how you computed the value!")))))
 
     :schema {:description "Evaluate Clojure code in restricted
     interpreter. Mostly for simple arithmetics. Use BigInts to avoid
     overflow."
-     :parameters {:type "object"
-                  :properties {:clojure-code
-                               {:type "string"
-                                :description "Clojure code consisting of arithmetic expressions."}}
-                  :required ["clojure-code"]
-                  :additionalProperties false}
-     :strict true}}})
+             :parameters {:type "object"
+                          :properties {:clojure-code
+                                       {:type "string"
+                                        :description "Clojure code consisting of arithmetic expressions."}}
+                          :required ["clojure-code"]
+                          :additionalProperties false}
+             :strict true}}})
 
 
 ;; Convert global `tool-map` to pass to LLM.

@@ -8,6 +8,7 @@
                  [clj-http "3.13.0"]
                  [org.clojure/tools.cli "1.1.230"]
                  [org.babashka/sci "0.10.48"] ; 2025-08-21
+                 [hiccup "2.0.0"]
                  [ring/ring-jetty-adapter "1.14.1"]
                  [org.slf4j/slf4j-simple "2.0.17"]
                  [org.clojure/tools.logging "1.3.0"]
