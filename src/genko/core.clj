@@ -18,7 +18,7 @@
    :api-key (or (System/getenv "OPENAI_API_KEY")
                 "sk-1234")
    :model (or (System/getenv "OPENAI_MODEL")
-              "gpt-4.1")})
+              "gpt-5-chat")})
 
 
 (defn- api-call

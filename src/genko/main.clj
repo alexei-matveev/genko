@@ -48,9 +48,11 @@
   (let [cli-options [["-v" "--verbose" "Enable verbose mode"
                       :default false]
                      [nil "--model MODEL" "Language model"
-                      :default "gpt-4.1"]
+                      :default (or (System/getenv "OPENAI_MODEL")
+                                   "gpt-5-chat")]
                      [nil "--base-url BASE-URL" "Base URL"
-                      :default (System/getenv "OPENAI_BASE_URL")]
+                      :default (or (System/getenv "OPENAI_BASE_URL")
+                                   "http://localhost:3000/v1")]
                      [nil "--api-key API-KEY" "API key"
                       :default (System/getenv "OPENAI_API_KEY")]
                      [nil "--server" "Start a server" :default false]
