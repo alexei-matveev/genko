@@ -9,12 +9,16 @@
    [clojure.java.io :as io]))
 
 
+;; You might want to start Clojure nREPL from a schell with these
+;; environment variables, e.g. `lein repl :headless :port 1122`, and
+;; M-x cider-connect-clj to it.
 (def ^:private default-options
   {:base-url (or (System/getenv "OPENAI_BASE_URL")
                  "http://localhost:3000")
    :api-key (or (System/getenv "OPENAI_API_KEY")
                 "sk-1234")
-   :model "gpt-4.1"})
+   :model (or (System/getenv "OPENAI_MODEL")
+              "gpt-4.1")})
 
 
 (defn- api-call
