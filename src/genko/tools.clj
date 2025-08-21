@@ -2,8 +2,19 @@
   (:require
    [genko.sci :as sci]
    [cheshire.core :as json]
+   [cheshire.generate :as jg]      ; encoder for hiccup.util.RawString
    [hiccup2.core :as h]
    [clojure.tools.logging :as log]))
+
+
+;; Where to put it?
+(jg/add-encoder hiccup.util.RawString jg/encode-str)
+(comment
+  (json/parse-string
+   (json/generate-string
+    (h/html [:p "hi!"])))
+  => "<p>hi!</p>")
+
 
 ;; See OpenAI function calling [1].   Beware of the schema differences
 ;; between Responses- and historical Chat Completions APIs used here:
@@ -78,12 +89,11 @@
           (if true
             ;; As HTML string, because "Cannot JSON encode object of
             ;; class: class hiccup.util.RawString"
-            (str
-             (h/html
-                 [:details
-                  [:summary "Additional context"]
-                  [:p "Clojure code " [:clojure clojure-code] " evaluates to " [:clojure text-value]]
-                  [:p "Cite this but only when asked how you computed the value!"]]))
+            (h/html
+                [:details
+                 [:summary "Additional context"]
+                 [:p "Clojure code " [:clojure clojure-code] " evaluates to " [:clojure text-value]]
+                 [:p "Cite this but only when asked how you computed the value!"]])
             ;; As Markdown:
             (str
              "#### Additional Context\n\n"
