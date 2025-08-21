@@ -6,6 +6,8 @@
 
 
 (defn eval-string [clojure-code]
+  ;; See examples:
+  ;; https://github.com/babashka/sci/tree/master/examples/sci/examples
   (let [ns (sci/create-ns 'clojure.math)
         sci-ns (sci/copy-ns clojure.math ns)
         ctx (sci/init {:namespaces {'clojure.math sci-ns}
@@ -20,10 +22,13 @@
 (defn- eval-sexp [sexp]
   (eval-string (str sexp)))
 
-;; To get an idea about "attack surface" without explicit
-;; allow-list. Much the staff here is to decipher the *ctx* issue with
-;; lazy seqs.
 (comment
+  (eval-sexp '(apply *' (range 1 22))) => 51090942171709440000N
+  (eval-sexp '(apply * (range 1N 22))) => 51090942171709440000N
+  (eval-sexp '(apply * (range 1 22N))) ; => long overflow
+
+  (eval-sexp '(slurp "/etc/passwd")) ; => could not resolve symbol slurp
+
   (count
    (distinct
     (for [method (.getMethods java.lang.Math)]
@@ -45,6 +50,10 @@
   (eval-sexp '(Math/nextUp 1.0)) => 1.0000000000000002
   (eval-sexp '(clojure.math/next-up 1.0)) => 1.0000000000000002
 
+  ;; To get an idea about "attack surface" without explicit
+  ;; allow-list. Much the staff here is to decipher the *ctx* issue
+  ;; with lazy seqs.
+  ;;
   ;; NOTE: Closures such as (fn [] (find-ns 'user)) or calls to the
   ;; likes of `find-ns` rely on "dynamic SCI context",
   ;; sci.ctx-store/*ctx*. I dont quite feel it, but see the issue &
