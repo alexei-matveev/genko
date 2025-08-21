@@ -241,10 +241,9 @@
                                            :content prompt})]
               (recur :assistant messages)))))
 
-      ;; Assistant turn. Actuall LLM call here. FIXME: maybe reuse
-      ;; `chat-with-tools` here? Or do we need to keep all of the
-      ;; conversation history in context, includinf all the tool
-      ;; calls?
+      ;; Assistant turn. Reuse `chat-with-tools*` here. Note that we
+      ;; thus keep all of the conversation history in context,
+      ;; including all the tool calls and results.
       :assistant
       (let [messages (chat-with-tools* options messages)
             response (last messages)]
