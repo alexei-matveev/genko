@@ -79,8 +79,9 @@
            "Clojure code\n\n" clojure-code "\n\nevaluates to\n\n" text-value
            "\n\nCite this but only when asked how you computed the value!"))))
 
-    :schema
-    {:description "Evaluate Clojure code in restricted interpreter. Mostly for simple arithmetics."
+    :schema {:description "Evaluate Clojure code in restricted
+    interpreter. Mostly for simple arithmetics. Use BigInts to avoid
+    overflow."
      :parameters {:type "object"
                   :properties {:clojure-code
                                {:type "string"
