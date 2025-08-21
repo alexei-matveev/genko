@@ -151,12 +151,13 @@
    :annotations []})
 
 
-;; This implementation of the `chat-with-tools` function hides from
-;; the caller the exact results of the tool calls, as well as the fact
-;; that the tools were used at all. The context containing the
-;; transcript of all the tool calls is not visible to the caller. This
-;; behavior may or may not be what the caller wants. Here is a use
-;; case where the transcript would have been useful:
+;; The difference between `chat-with-tools` and `chat-with-tools*` is
+;; that the former hides from the caller the exact results of the tool
+;; calls, as well as the fact that the tools were used at all. The
+;; context containing the transcript of all the tool calls is not
+;; visible to the caller. This behavior may or may not be what the
+;; caller wants. Here is a use case where the transcript would have
+;; been useful:
 ;;
 ;;   USER: sin(1.1)
 ;;   ASSISTANT: sin(1.1) ≈ 0.8912
@@ -171,32 +172,43 @@
 ;; Without a transcript, the LLM might tell you a story about the
 ;; Taylor series when you ask how it arrived at the result.
 ;;
-(defn chat-with-tools
-  "Let LLM chat with our tools, return when LLM responds with actual
-  content"
+(defn chat-with-tools*
+  "Let LLM chat with our tools, return the whole conversation when LLM
+  responds with actual content"
   [options messages]
 
   (loop [messages messages]
     ;; Actuall LLM call here:
-    (let [response (chat-completion options messages)]
+    (let [response (chat-completion options messages)
+          ;; Push responce onto "context stack":
+          messages (conj messages response)]
+
+      ;; An assistant message with `tool_calls` must be followed by
+      ;; tool messages responding to each `tool_call_id`.  Ideally one
+      ;; would need to ask the consent of the user to execute tools.
+      ;;
+      ;; Push results of tool calls onto the "context stack" and
+      ;; recur.  FIXME: potentially infinite recursion here if LLM
+      ;; never stops calling tools!
       (if-let [tool-calls (seq (:tool_calls response))]
-        ;; An assistant message with `tool_calls` must be followed by
-        ;; tool messages responding to each `tool_call_id`.  Ideally
-        ;; one would need to ask the consent of the user to execute
-        ;; tools.  But first, we must keep the response of the model
-        ;; for it to be fully context aware!
-        (let [messages (conj messages response)
-
-              ;; Now append results of tool calls:
-              messages (into messages (tools/call-tools tool-calls))]
-
-          ;; FIXME: potentially infinite recursion here if LLM never
-          ;; stops calling tools!
+        (let [messages (into messages (tools/call-tools tool-calls))]
           (recur messages))
 
         ;; Regular case, LLM did not ask for tool calls, Just return
-        ;; the response, hopefully with actual content.
-        response))))
+        ;; the whole conversation, hopefully with actual content.
+        ;;
+        ;; Maybe a yet better abstraction would be to return response
+        ;; AND an updated context. The response duplicated at the top
+        ;; of the stack would be just a regular case of updating the
+        ;; context.
+        messages))))
+
+
+(defn chat-with-tools
+  "Historically we returned only the last message"
+  [options messages]
+  (last (chat-with-tools* options messages)))
+
 
 (comment
   (chat-with-tools nil [{:role "user", :content "what time ist it?"}])
@@ -234,20 +246,7 @@
       ;; conversation history in context, includinf all the tool
       ;; calls?
       :assistant
-      (let [response (chat-completion options messages)
-
-            ;; We must keep the response of the model for it to be fully
-            ;; context aware:
-            messages (conj messages response)]
-
-        ;; An assistant message with `tool_calls` must be followed by
-        ;; tool messages responding to each `tool_call_id`.  Ideally one
-        ;; would need to ask the consent of the user to execute tools.
-        (if-let [tool-calls (seq (:tool_calls response))]
-          (let [messages (into messages (tools/call-tools tool-calls))]
-            ;; FIXME: potentially infinite recursion here if LLM never
-            ;; stops calling tools!
-            (recur :assistant messages))
-          (do
-            (println "ASSISTANT:" (:content response))
-            (recur :user messages)))))))
+      (let [messages (chat-with-tools* options messages)
+            response (last messages)]
+        (println "ASSISTANT:" (:content response))
+        (recur :user messages)))))
