@@ -217,7 +217,29 @@
    :role "assistant",
    :tool_calls nil,
    :function_call nil,
-   :annotations []})
+   :annotations []}
+
+  (chat-with-tools* nil [{:role "user", :content "what time is it?"}])
+  =>
+  [{:role "user",
+    :content "what time is it?"}
+   {:content nil,
+    :role "assistant",
+    :tool_calls [{:function {:arguments "{}",
+                             :name "get-current-date-and-time"},
+                  :id "call_uK6KBLWbE0dD1f1Xz6nmGfXS",
+                  :type "function"}],
+    :function_call nil,
+    :annotations []}
+   {:role "tool",
+    :name "get-current-date-and-time",
+    :tool_call_id "call_uK6KBLWbE0dD1f1Xz6nmGfXS",
+    :content "Thu Aug 21 16:25:51 CEST 2025"}
+   {:content "The current time is 16:25 (4:25 PM) CEST on Thursday, August 21, 2025.",
+    :role "assistant",
+    :tool_calls nil,
+    :function_call nil,
+    :annotations []}])
 
 
 (defn chat-with-user
