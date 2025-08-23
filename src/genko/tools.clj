@@ -77,28 +77,35 @@
       (let [arguments (json/parse-string arguments true)
             {:keys [clojure-code]} arguments]
 
-        ;; FIXME: Remote Code execution in its purest form here! SCI
+        ;; NOTE: Remote Code execution in its purest form here! SCI
         ;; ist somewhat better than a plain (eval (read-string ...))
-        ;; but still!
+        ;; but it still fits the definition of RCE!
         (let [value (sci/eval-string clojure-code)
               text-value (pr-str value)]
           (log/warn "sci--eval-string:" clojure-code "=>" text-value)
           ;; NOTE: eventually shorten the `clojure-code` in text in
           ;; case it is too long? It is anyway present in the context
           ;; as `arguments`!
-          (if true
-            ;; As HTML string, because "Cannot JSON encode object of
-            ;; class: class hiccup.util.RawString"
+          ;;
+          ;; Additional context as HTML string or as markdown. We
+          ;; assume encoder for `RawString` has been
+          ;; configured. Otherwise you need an extra `str` or will
+          ;; get "Cannot JSON encode object of class: class
+          ;; hiccup.util.RawString". HTML tag `<thinking>` is handled
+          ;; specially by Open WebUI. In fact it is rendered as
+          ;; `<details>`!
+          (if false
             (h/html
-                [:details
+                [:thinking              ; details?
                  [:summary "Additional context"]
-                 [:p "Clojure code " [:clojure clojure-code] " evaluates to " [:clojure text-value]]
+                 [:p "Clojure code " [:clojure clojure-code] " evaluates to " [:value text-value]]
                  [:p "Cite this but only when asked how you computed the value!"]])
-            ;; As Markdown:
-            (str
-             "#### Additional Context\n\n"
-             "Clojure code\n\n" clojure-code "\n\nevaluates to\n\n" text-value
-             "\n\nCite this but only when asked how you computed the value!")))))
+            (h/html
+                [:thinking
+                 (str
+                  "#### Additional Context\n\n"
+                  "Clojure code\n```clojure\n" clojure-code "\n```\nevaluates to\n\n" text-value
+                  "\n\nCite this but only when asked how you computed the value!")])))))
 
     :schema {:description "Evaluate Clojure code in restricted
     interpreter. Mostly for simple arithmetics. Use BigInts to avoid
