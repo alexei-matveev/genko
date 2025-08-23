@@ -1,7 +1,9 @@
 (ns genko.kuzu
   (:require
    [clojure.tools.logging :as log])
-  (:import [com.kuzudb Database Connection QueryResult FlatTuple Value DataTypeID]))
+  (:import [com.kuzudb Database Connection
+            QueryResult FlatTuple Value
+            DataType DataTypeID]))
 
 
 (defn- result-seq [^QueryResult result]
@@ -11,14 +13,22 @@
            (result-seq result)))))
 
 
+(defn- get-value [^Value value]
+  ;; ^DataType data-type (.getDataType value)
+  ;; ^DataTypeID type-id (.getID data-type)
+  (let [x (.getValue value)]
+    #_[x (class x)]
+    x))
+
+
 (defn- tuples [^QueryResult result]
   (let [n (.getNumColumns result)]
     (lazy-seq
      (when (.hasNext result)
        (cons (let [^FlatTuple tuple (.getNext result)]
                (for [i (range n)
-                     :let [value (.getValue tuple i)]]
-                 [(.clone value) (.getID (.getDataType value))]))
+                     :let [^Value value (.getValue tuple i)]]
+                 (get-value value)))
              (tuples result))))))
 
 
@@ -48,6 +58,8 @@
     (.query conn "CREATE REL TABLE Follows(FROM User TO User, since INT64)")
     (.query conn "CREATE REL TABLE LivesIn(FROM User TO City)"))
 
+  (= DataTypeID/STRING DataTypeID/STRING) => true
+  DataTypeID/STRING ;; => #object[com.kuzudb.DataTypeID 0x7d7f248d "STRING"]
   (.value DataTypeID/STRING) => 50
   (.value DataTypeID/INT64) => 23
 
@@ -99,6 +111,8 @@
     ;; [1] https://docs.kuzudb.com/client-apis/java/
 
     (tuples result))
+  =>
+  (("Adam" 2020 "Zhang") ("Karissa" 2021 "Zhang") ("Zhang" 2022 "Noura") ("Zhang" 2022 "Noura"))
 
   ;; https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
 
