@@ -181,7 +181,8 @@
   responds with actual content"
   [options messages]
 
-  (loop [messages messages]
+  (loop [messages messages
+         computed-context []]
     ;; Actuall LLM call here:
     (let [response (chat-completion options messages)
           ;; Push responce onto "context stack":
@@ -195,8 +196,9 @@
       ;; recur.  FIXME: potentially infinite recursion here if LLM
       ;; never stops calling tools!
       (if-let [tool-calls (seq (:tool_calls response))]
-        (let [messages (into messages (tools/call-tools tool-calls))]
-          (recur messages))
+        (let [results (tools/call-tools tool-calls)]
+          (recur (into messages results)
+                 (into computed-context results)))
 
         ;; Regular case, LLM did not ask for tool calls, Just return
         ;; the whole conversation, hopefully with actual content.
@@ -205,7 +207,13 @@
         ;; AND an updated context. The response duplicated at the top
         ;; of the stack would be just a regular case of updating the
         ;; context.
-        messages))))
+        ;;
+        ;; FIXME: prepend output of the tools to the actual message:
+        (let [text (apply str (map :content computed-context))]
+          (conj (vec (butlast messages))
+                (update (last messages)
+                        :content
+                        (fn [content] (str text "\n" content)))))))))
 
 
 (defn chat-with-tools
