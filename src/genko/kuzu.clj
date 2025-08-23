@@ -1,7 +1,7 @@
 (ns genko.kuzu
   (:require
    [clojure.tools.logging :as log])
-  (:import [com.kuzudb Database Connection QueryResult FlatTuple]))
+  (:import [com.kuzudb Database Connection QueryResult FlatTuple Value DataTypeID]))
 
 
 (defn- result-seq [^QueryResult result]
@@ -16,8 +16,9 @@
     (lazy-seq
      (when (.hasNext result)
        (cons (let [^FlatTuple tuple (.getNext result)]
-               (for [i (range n)]
-                 (.clone (.getValue tuple i))))
+               (for [i (range n)
+                     :let [value (.getValue tuple i)]]
+                 [(.clone value) (.getID (.getDataType value))]))
              (tuples result))))))
 
 
@@ -46,6 +47,9 @@
     (.query conn "CREATE NODE TABLE City(name STRING PRIMARY KEY, population INT64)")
     (.query conn "CREATE REL TABLE Follows(FROM User TO User, since INT64)")
     (.query conn "CREATE REL TABLE LivesIn(FROM User TO City)"))
+
+  (.value DataTypeID/STRING) => 50
+  (.value DataTypeID/INT64) => 23
 
   ;; // Load data.
   ;; conn.query("COPY User FROM 'src/main/resources/user.csv'");
