@@ -14,10 +14,14 @@
 
 
 (defn- get-value [^Value value]
-  ;; ^DataType data-type (.getDataType value)
-  ;; ^DataTypeID type-id (.getID data-type)
+  ;; As long as we dont invoke instance methods of `x`, we need
+  ;; neither reflection nor type hints. The method `.getValue` is
+  ;; generic and effectivly always returns an `Object` after type
+  ;; erasure:
   (let [x (.getValue value)]
-    #_[x (class x)]
+    ;; ^DataType data-type (.getDataType value)
+    ;; ^DataTypeID type-id (.getID data-type)
+    ;; [x (class x)]
     x))
 
 
