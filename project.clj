@@ -13,7 +13,17 @@
                  [org.slf4j/slf4j-simple "2.0.17"]
                  [org.clojure/tools.logging "1.3.0"]
                  [ring-cors "0.1.13"]
-                 [compojure "1.7.1"]]
+                 [compojure "1.7.1"]
+
+                 ;; Experiment, eventually Datascript? Kuzu is an
+                 ;; embedded property graph database built for
+                 ;; speed. Vector search and full-text search built
+                 ;; in. Implements Cypher. Kuzu JAR is about 100M as
+                 ;; of 0.11.2.
+                 ;;
+                 ;; [1] https://github.com/kuzudb/kuzu
+                 ;; [2] https://docs.kuzudb.com/installation/
+                 [com.kuzudb/kuzu "0.11.2"]]
   :main genko.main
   :aot :all
   :repl-options {:init-ns genko.main})
