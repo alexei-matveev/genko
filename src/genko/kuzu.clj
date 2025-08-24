@@ -254,6 +254,11 @@
   (query conn "match (a) where a = a return a")
   (prepare conn "match (a) where a = $a return a")
 
+  ;; FIXME: multiple returns or `.hasNextQueryResult`. This would be a
+  ;; simplest example:
+  (query conn "return 1 as x;") => ({:x 1})                ; OK
+  (query conn "return 1 as x; return 2 as y;") => ({:x 1}) ; FAIL
+
   ;; Close and release the underlying resources. This method is
   ;; invoked automatically on objects managed by the
   ;; try-with-resources statement.
