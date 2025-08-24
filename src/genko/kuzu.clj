@@ -250,9 +250,9 @@
 
   (let [as (query conn "RETURN {name: 'Alice', x: {y: 42}} AS a")]
     (for [a as :let [a (:a a)
-                     t (str (.getID (.getDataType a)))]]
-      [t a]))
-  ;; => (["STRUCT" #object[com.kuzudb.Value 0x445fc74b "{name: Alice, x: {y: 42}}"]])
+                     t (.getID (.getDataType a))]]
+      (map str [t a])))
+  => (("STRUCT" "{name: Alice, x: {y: 42}}"))
 
   ;; FIXME: This possibly illegal syntax breaks Kuzu/JVM runtime, so
   ;; far without any Exception or error message. Will we ever need to
