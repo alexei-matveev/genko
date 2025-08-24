@@ -233,14 +233,23 @@
   ;; `try/catch` logic in `as-maps`. Do we want/need to convert them
   ;; to Clojure maps? Is Kuzu `Value` possibly serializable to JSON?
   ;; If so, it must be representable as Clojure Map as well. See
-  ;; `ValueNodeUtil` & `ValueRelUtil` [1], eventually.
+  ;; `ValueNodeUtil` & `ValueRelUtil` [1], eventually. Also STRUCT and
+  ;; MAP are separate Cypher data types.
   ;;
   ;; [1] https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/ValueNodeUtil.java
   (execute conn "match (a:User {name: $name}) return a" {:name "Adam"})
   ;; => ({:a #object[com.kuzudb.Value 0x5d1d8d19 "{_ID: 0:0, _LABEL: User, name: Adam, age: 30}"]})
 
-  (query conn "match  ()-[r:Follows]->() return r limit 1")
+  (query conn "match ()-[r:Follows]->() return r limit 1")
   ;; => ({:r #object[com.kuzudb.Value 0xc51ee93 "(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)"]})
+
+  ;; Cypher structs (?) were probably the best candidates to be
+  ;; represented as Clojure maps:
+  (query conn "RETURN {name: 'Alice', age: 42, active: true} AS person")
+  ;; => ({:person #object[com.kuzudb.Value 0x254cc0a7 "{name: Alice, age: 42, active: True}"]})
+
+  (query conn "RETURN {name: 'Alice', x: {y: 42}} AS recursive")
+  ;; => ({:recursive #object[com.kuzudb.Value 0x5a221e22 "{name: Alice, x: {y: 42}}"]})
 
   ;; FIXME: This possibly illegal syntax breaks Kuzu/JVM runtime, so
   ;; far without any Exception or error message. Will we ever need to
