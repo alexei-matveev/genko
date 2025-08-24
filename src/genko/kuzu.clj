@@ -71,20 +71,31 @@
     (as-maps result)))
 
 
-(defn execute
-  "Execute query with arguments and return results as a lazy Clojure
-  sequence. The caller should evaluate results before closing
-  connection!"
-  [^Connection conn ^String q kws]
+;; Should probably be a part of public interface:
+(defn prepare
+  "Prepare Cypher statement."
+  [^Connection conn ^String q]
+  (.prepare conn q))
 
-  ;; TODO: Specialize code for (isinstance? PreparedStatement q)!
-  (let [^PreparedStatement p (.prepare conn q)
-        ;; Keyword Arguments as Map<String,Value>. Should we also
-        ;; allow String keys in the input?
-        value-map (into {} (for [[k v] kws]
-                             [(name k) (Value. v)]))
-        results (.execute conn p value-map)]
-    (as-maps results)))
+
+(defn execute
+  "Execute prepared Cypher statement with arguments and return results
+  as a lazy Clojure sequence. The caller should evaluate results
+  before closing connection!"
+  [^Connection conn statement kws]
+  (cond
+    ;; Specialize for the case of a String instead of
+    ;; PreparedStatement:
+    (instance? String statement)
+    (execute conn (prepare conn statement) kws)
+
+    ;; Convert keyword arguments to a Map<String,Value>. Should we
+    ;; also allow String keys in the input?
+    (instance? PreparedStatement statement)
+    (let [value-map (into {} (for [[k v] kws]
+                               [(name k) (Value. v)]))
+          results (.execute conn statement value-map)]
+      (as-maps results))))
 
 
 (defn- demo []
@@ -159,6 +170,7 @@
     (.query conn "CREATE REL TABLE Follows(FROM User TO User, since INT64)")
     (.query conn "CREATE REL TABLE LivesIn(FROM User TO City)"))
 
+  ;; https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
   (= DataTypeID/STRING DataTypeID/STRING) => true
   DataTypeID/STRING ;; => #object[com.kuzudb.DataTypeID 0x7d7f248d "STRING"]
   (.value DataTypeID/STRING) => 50
@@ -185,13 +197,12 @@
            return a.name, f.since, b.name;"]
     (execute conn q {:year 2021}))
 
-  (execute conn "match (a:User) return a.*" {})
+  (def ps (prepare conn "match (a:User) return a.*"))
+  (execute conn ps {})
   (execute conn "create (a:User {name: $name, age: $age})" {:name "John" :age 21})
-  (execute conn "match (a:User) return a.*" {})
+  (execute conn ps {})
   (execute conn "match (a:User {name: $name}) detach delete a" {:name "John"})
-  (execute conn "match (a:User) return a.*" {})
-
-  ;; https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
+  (execute conn ps {})
 
   ;; Close and release the underlying resources. This method is
   ;; invoked automatically on objects managed by the
