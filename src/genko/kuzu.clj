@@ -160,10 +160,11 @@
   (do
     (def db (Database. ":memory:"))
     (def conn (Connection. db)))
-  db
-  (.close db)
-  conn
-  (.close conn)
+  (do
+    db
+    conn
+    (.close conn)
+    (.close db))
 
   ;; // Create tables.
   ;; conn.query("CREATE NODE TABLE User(name STRING PRIMARY KEY, age INT64)");
@@ -234,6 +235,11 @@
   (let [adams (query conn "match (a:User {name: 'Adam'}) return a")]
     (for [a adams]
       (execute conn "match (a) where a = $a return a.name" a)))
+
+  ;; FWIW: This syntax appears to be OK, also in parametrized form for
+  ;; `prepare`:
+  (query conn "match (a) where a = a return a")
+  (prepare conn "match (a) where a = $a return a")
 
   ;; Close and release the underlying resources. This method is
   ;; invoked automatically on objects managed by the
