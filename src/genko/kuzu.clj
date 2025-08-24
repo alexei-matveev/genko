@@ -47,13 +47,16 @@
 
 
 (defn- tuples [^QueryResult result]
-  (let [n (.getNumColumns result)]
+  (let [n (.getNumColumns result)
+        cols (for [i (range n)]
+               (keyword (.getColumnName result i)))]
     (lazy-seq
      (when (.hasNext result)
-       (cons (let [^FlatTuple tuple (.getNext result)]
-               (for [i (range n)
-                     :let [^Value value (.getValue tuple i)]]
-                 (get-value value)))
+       (cons (let [^FlatTuple tuple (.getNext result)
+                   values (for [i (range n)
+                                :let [^Value value (.getValue tuple i)]]
+                            (get-value value))]
+               (zipmap cols values))
              (tuples result))))))
 
 
@@ -92,7 +95,10 @@
 (comment
   (demo)
   =>
-  (("Zhang" 2022 "Noura") ("Zhang" 2022 "Noura") ("Zhang" 2022 "Noura") ("Zhang" 2022 "Noura"))
+  ({:a.name "Adam", :f.since 2020, :b.name "Karissa"}
+   {:a.name "Adam", :f.since 2020, :b.name "Zhang"}
+   {:a.name "Karissa", :f.since 2021, :b.name "Zhang"}
+   {:a.name "Zhang", :f.since 2022, :b.name "Noura"})
 
   ;; // Create an empty on-disk database and connect to it
   ;; Database db = new Database("example.kuzu");
@@ -146,8 +152,6 @@
     ;; }
 
     (tuples result))
-  =>
-  (("Adam" 2020 "Zhang") ("Karissa" 2021 "Zhang") ("Zhang" 2022 "Noura") ("Zhang" 2022 "Noura"))
 
   ;; https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
 
