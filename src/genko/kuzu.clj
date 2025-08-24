@@ -157,6 +157,13 @@
     (let [q "MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;"]
       (doall (query conn q)))))
 
+
+(defn- inspect-value [^Value v]
+  (let [^DataType dt (.getDataType v)
+        ^DataTypeID tid (.getID dt)]
+    (map str [tid v])))
+
+
 (comment
   (demo)
   =>
@@ -231,27 +238,34 @@
 
   ;; Some Kuzu values are opaque so that `.getValue` fails see
   ;; `try/catch` logic in `as-maps`. Do we want/need to convert them
-  ;; to Clojure maps? Is Kuzu `Value` possibly serializable to JSON?
-  ;; If so, it must be representable as Clojure Map as well. See
-  ;; `ValueNodeUtil` & `ValueRelUtil` [1], eventually. Also STRUCT and
-  ;; MAP are separate Cypher data types.
+  ;; to Clojure maps? Isn't Kuzu `Value` serializable to JSON?  If so,
+  ;; it must be representable as Clojure map as well. See
+  ;; `ValueNodeUtil` & `ValueRelUtil` [1], eventually. Also `STRUCT`,
+  ;; `MAP`, `UNION` und mehr are all separate Cypher data
+  ;; types [2]. Oje!
   ;;
   ;; [1] https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/ValueNodeUtil.java
-  (execute conn "match (a:User {name: $name}) return a" {:name "Adam"})
-  ;; => ({:a #object[com.kuzudb.Value 0x5d1d8d19 "{_ID: 0:0, _LABEL: User, name: Adam, age: 30}"]})
+  ;; [2] https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
+  (let [as (execute conn "match (a:User {name: $name}) return a" {:name "Adam"})]
+    (for [a as :let [a (:a a)]]
+      (inspect-value a)))
+  => (("NODE" "{_ID: 0:0, _LABEL: User, name: Adam, age: 30}"))
 
-  (query conn "match ()-[r:Follows]->() return r limit 1")
-  ;; => ({:r #object[com.kuzudb.Value 0xc51ee93 "(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)"]})
+  (let [as (query conn "match ()-[a:Follows]->() return a limit 1")]
+    (for [a as :let [a (:a a)]]
+      (inspect-value a)))
+  => (("REL" "(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)"))
 
   ;; Cypher `STRUCT` is probably the best candidate to be represented
   ;; as a Clojure map:
-  (query conn "RETURN {name: 'Alice', age: 42, active: true} AS person")
-  ;; => ({:person #object[com.kuzudb.Value 0x254cc0a7 "{name: Alice, age: 42, active: True}"]})
+  (let [as(query conn "RETURN {name: 'Alice', age: 42, active: true} AS a")]
+    (for [a as :let [a (:a a)]]
+      (inspect-value a)))
+  => (("STRUCT" "{name: Alice, age: 42, active: True}"))
 
   (let [as (query conn "RETURN {name: 'Alice', x: {y: 42}} AS a")]
-    (for [a as :let [a (:a a)
-                     t (.getID (.getDataType a))]]
-      (map str [t a])))
+    (for [a as :let [a (:a a)]]
+      (inspect-value a)))
   => (("STRUCT" "{name: Alice, x: {y: 42}}"))
 
   ;; FIXME: This possibly illegal syntax breaks Kuzu/JVM runtime, so
