@@ -57,7 +57,10 @@
        (let [^FlatTuple tuple (.getNext result)
              values (for [i (range n)
                           :let [^Value value (.getValue tuple i)]]
-                      (.getValue value))
+                      (try
+                        (.getValue value)
+                        ;; Some Kuzu Values are opaque:
+                        (catch Exception e value)))
              row (zipmap cols values)]
          (cons row (as-maps result)))))))
 
@@ -208,7 +211,18 @@
   (execute conn "match (a:User {name: $name}) return a.*" {:name "Adam" :age 22}) ; => Parameter age not found.
   (execute conn "match (a:User {name: $name}) return a.*" {:name "Adam"}) => ({:a.name "Adam", :a.age 30})
 
-  (execute conn "match (a:User {name: $name}) return a" {:name "Adam"}) ; => Type of value is not supported in value_get_value
+  ;; Some Kuzu values are opaque so that `.getValue` fails see
+  ;; `try/catch` logic in `as-maps`. Do we want/need to convert them
+  ;; to Clojure maps? Is Kuzu `Value` possibly serializable to JSON?
+  ;; If so, it must be representable as Clojure Map as well. See
+  ;; `ValueNodeUtil` & `ValueRelUtil` [1], eventually.
+  ;;
+  ;; [1] https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/ValueNodeUtil.java
+  (execute conn "match (a:User {name: $name}) return a" {:name "Adam"})
+  ;; => ({:a #object[com.kuzudb.Value 0x5d1d8d19 "{_ID: 0:0, _LABEL: User, name: Adam, age: 30}"]})
+
+  (query conn "match  ()-[r:Follows]->() return r limit 1")
+  ;; => ({:r #object[com.kuzudb.Value 0xc51ee93 "(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)"]})
 
   ;; Close and release the underlying resources. This method is
   ;; invoked automatically on objects managed by the
