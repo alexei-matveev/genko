@@ -34,34 +34,33 @@
 ;;
 ;; [1] https://docs.kuzudb.com/client-apis/java/
 
-(defn- get-value
-  "Inline it!"
-  [^Value value]
-  ;; As long as we dont invoke instance methods of `x`, we need
-  ;; neither reflection nor type hints. The method `.getValue` is
-  ;; generic and effectivly always returns an `Object` after type
-  ;; erasure:
-  (let [x (.getValue value)]
-    ;; ^DataType data-type (.getDataType value)
-    ;; ^DataTypeID type-id (.getID data-type)
-    ;; [x (class x)]
-    x))
 
-
-;; FIXME: What if `QueryResult` `.hasNextQueryResult`?! Do we need
-;; another seq layer?
+;; FIXME: What if `QueryResult` `.hasNextQueryResult` in the current
+;; implementation of `as-map`? Do we need another seq layer? Ant what
+;; about nested types?
+;;
+;; As long as we dont invoke instance methods on Clojure values, we
+;; need neither reflection nor type hints. The method `.getValue` of
+;; Kuzu `Value` is generic and effectivly always returns an `Object`
+;; after type erasure. It is a blessing we dont need to go over all
+;; the Kuzu types & type IDs yet:
+;;
+;;   ^DataType data-type (.getDataType value)
+;;   ^DataTypeID type-id (.getID data-type)
+;;
 (defn- as-maps [^QueryResult result]
   (let [n (.getNumColumns result)
         cols (for [i (range n)]
                (keyword (.getColumnName result i)))]
     (lazy-seq
-      (when (.hasNext result)
-        (let [^FlatTuple tuple (.getNext result)
-              values (for [i (range n)
-                           :let [^Value value (.getValue tuple i)]]
-                       (get-value value))
-              row (zipmap cols values)]
-          (cons row (as-maps result)))))))
+     (when (.hasNext result)
+       (let [^FlatTuple tuple (.getNext result)
+             values (for [i (range n)
+                          :let [^Value value (.getValue tuple i)]]
+                      (.getValue value))
+             row (zipmap cols values)]
+         (cons row (as-maps result)))))))
+
 
 (defn query
   "Query database and return results as a lazy Clojure sequence. Note
