@@ -4,9 +4,9 @@
             PreparedStatement DataType DataTypeID]))
 
 
-;; NOTE: Kuzu *overwrites* contents of the FlatTuple on iterations
-;; with .getNext [1]! If you force the result seq first and only look
-;; inside FlatTuple *after* that you will be dissappointed:
+;; NOTE: Kuzu *overwrites* contents of the `FlatTuple` on iterations
+;; with `.getNext` [1]! If you force the result seq *first* and only
+;; look inside FlatTuple *after* that you will be dissappointed:
 ;;
 ;;   (defn- result-seq [^QueryResult result]
 ;;     (lazy-seq
@@ -48,6 +48,8 @@
     x))
 
 
+;; FIXME: What if `QueryResult` `.hasNextQueryResult`?! Do we need
+;; another seq layer?
 (defn- as-maps [^QueryResult result]
   (let [n (.getNumColumns result)
         cols (for [i (range n)]
