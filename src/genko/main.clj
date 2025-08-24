@@ -2,6 +2,7 @@
   (:require
    [genko.core :as core]
    [genko.server :as server]
+   [genko.kuzu :as kuzu]
    [clojure.string :as str]
    [clojure.tools.cli :as cli]
    [clojure.edn :as edn]
@@ -56,6 +57,7 @@
                      [nil "--api-key API-KEY" "API key"
                       :default (System/getenv "OPENAI_API_KEY")]
                      [nil "--server" "Start a server" :default false]
+                     [nil "--wip" "WIP" :default false]
                      [nil "--port PORT" "Server port" :default 3000 :parse-fn #(Integer/parseInt %)]]
         cli-parsed (cli/parse-opts args cli-options)
         {:keys [options errors]} cli-parsed]
@@ -69,6 +71,9 @@
 
       (:server options)
       (server/start-server options)
+
+      (:wip options)
+      (println "kuzu/demo:" (kuzu/demo))
 
       :else
       (core/chat-with-user

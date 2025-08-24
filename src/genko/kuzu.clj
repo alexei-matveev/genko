@@ -104,7 +104,7 @@
       (as-maps results))))
 
 
-(defn- demo []
+(defn demo []
   ;; Create an empty in-memory or on-disk database and connect to it.
   (with-open [^Database db (Database. ":memory:")
               ^Connection conn (Connection. db)]
@@ -135,16 +135,21 @@
     ;; Execute a simple query.  We must force the lazy seq before
     ;; closing `Connection` & `Database`, see `with-open` above!
     ;; Otherwise return values cannot be printed outside of this
-    ;; function: "Error printing return value at
-    ;; com.kuzudb.Native/kuzuQueryResultToString ...". This commented
-    ;; code would work here though:
+    ;; function.
+
+    ;; FIXME: This possibly illegal syntax breaks Kuzu/JVM runtime
+    ;; with SIGSEGV. Not an Exception or error message! Will we ever
+    ;; need to pass nodes or relations back? See GitHub Issue [1]. We
+    ;; leave it commented here.
     ;;
-    ;; (while (.hasNext result)
-    ;;     (let [^FlatTuple row (.getNext result)]
-    ;;       (println row)))
+    ;; [1] https://github.com/kuzudb/kuzu/issues/5938
+    #_(doall
+     (let [adams (query conn "match (a:User {name: 'Adam'}) return a")]
+       (for [a adams]
+         (execute conn "match (a) where a = $a return a.name" a))))
+
     (let [q "MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;"]
       (doall (query conn q)))))
-
 
 (comment
   (demo)
@@ -212,7 +217,9 @@
   (execute conn ps {})
 
   ;; Why ist extra parameter in the map a problem? One gets an error
-  ;; message: "Parameter ... not found".
+  ;; message: "Parameter ... not found". See GitHub issue [1].
+  ;;
+  ;; [1] https://github.com/kuzudb/kuzu/issues/5937
   (execute conn "match (a:User {name: $name}) return a.*" {:name "Adam" :age 22}) ; => Parameter age not found.
   (execute conn "match (a:User {name: $name}) return a.*" {:name "Adam"}) => ({:a.name "Adam", :a.age 30})
 
