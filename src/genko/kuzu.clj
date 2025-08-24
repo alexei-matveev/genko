@@ -10,6 +10,12 @@
 ;; with .getNext [1]! If you force the result seq first and only look
 ;; inside FlatTuple *after* that you will be dissappointed:
 ;;
+;;   (defn- result-seq [^QueryResult result]
+;;     (lazy-seq
+;;      (when (.hasNext result)
+;;        (cons (.getNext result)
+;;              (result-seq result)))))
+;;
 ;;   (map str (doall (result-seq result))) ; WRONG!
 ;;   =>
 ;;   ("Zhang|2022|Noura\n"
@@ -17,7 +23,7 @@
 ;;    "Zhang|2022|Noura\n"
 ;;    "Zhang|2022|Noura\n")
 ;;
-;; This does work however:
+;; This would work:
 ;;
 ;;   (mapv str (result-seq result))
 ;;   =>
@@ -26,15 +32,13 @@
 ;;    "Karissa|2021|Zhang\n"
 ;;    "Zhang|2022|Noura\n"]
 ;;
+;; But why letting such a leaky abstraction propagate further?
+;;
 ;; [1] https://docs.kuzudb.com/client-apis/java/
-(defn- result-seq [^QueryResult result]
-  (lazy-seq
-   (when (.hasNext result)
-     (cons (.getNext result)
-           (result-seq result)))))
 
-
-(defn- get-value [^Value value]
+(defn- get-value
+  "Inline it!"
+  [^Value value]
   ;; As long as we dont invoke instance methods of `x`, we need
   ;; neither reflection nor type hints. The method `.getValue` is
   ;; generic and effectivly always returns an `Object` after type
