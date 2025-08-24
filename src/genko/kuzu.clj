@@ -57,11 +57,46 @@
              (tuples result))))))
 
 
+(defn- demo []
+  ;; Create an empty on-disk database and connect to it
+  (with-open [^Database db (Database. ":memory:")
+              ^Connection conn (Connection. db)]
+
+    ;; Create tables.
+    (do
+      (.query conn "CREATE NODE TABLE User(name STRING PRIMARY KEY, age INT64)")
+      (.query conn "CREATE NODE TABLE City(name STRING PRIMARY KEY, population INT64)")
+      (.query conn "CREATE REL TABLE Follows(FROM User TO User, since INT64)")
+      (.query conn "CREATE REL TABLE LivesIn(FROM User TO City)"))
+
+    ;; Load data.
+    (do
+      (.query conn "COPY User FROM 'resources/user.csv'")
+      (.query conn "COPY City FROM 'resources/city.csv'")
+      (.query conn "COPY Follows FROM 'resources/follows.csv'")
+      (.query conn "COPY LivesIn FROM 'resources/lives-in.csv'"))
+
+    ;; Execute a simple query.
+    (let [q "MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;"
+          ^QueryResult result (.query conn q)]
+
+      ;; We must force the lazy seq before closing `Connection` &
+      ;; `Database`, see `with-open` above! Otherwise not even return
+      ;; values cannot be printed outside of this function: "Error
+      ;; printing return value at
+      ;; com.kuzudb.Native/kuzuQueryResultToString ...". This
+      ;; commented code would work here though:
+      ;;
+      ;; (while (.hasNext result)
+      ;;     (let [^FlatTuple row (.getNext result)]
+      ;;       (println row)))
+      (doall (tuples result)))))
+
 (comment
-  ;; We should use `with-open` but return values cannot be printed
-  ;; after closing DB! "Error printing return value at
-  ;; com.kuzudb.Native/kuzuQueryResultToString ..."
-  ;;
+  (demo)
+  =>
+  (("Zhang" 2022 "Noura") ("Zhang" 2022 "Noura") ("Zhang" 2022 "Noura") ("Zhang" 2022 "Noura"))
+
   ;; // Create an empty on-disk database and connect to it
   ;; Database db = new Database("example.kuzu");
   ;; Connection conn = new Connection(db);
@@ -112,9 +147,6 @@
     ;;     FlatTuple row = result.getNext();
     ;;     System.out.print(row);
     ;; }
-    #_(while (.hasNext result)
-        (let [^FlatTuple row (.getNext result)]
-          (println row)))
 
     (tuples result))
   =>
