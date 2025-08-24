@@ -55,14 +55,13 @@
         cols (for [i (range n)]
                (keyword (.getColumnName result i)))]
     (lazy-seq
-     (when (.hasNext result)
-       (cons (let [^FlatTuple tuple (.getNext result)
-                   values (for [i (range n)
-                                :let [^Value value (.getValue tuple i)]]
-                            (get-value value))]
-               (zipmap cols values))
-             (as-maps result))))))
-
+      (when (.hasNext result)
+        (let [^FlatTuple tuple (.getNext result)
+              values (for [i (range n)
+                           :let [^Value value (.getValue tuple i)]]
+                       (get-value value))
+              row (zipmap cols values)]
+          (cons row (as-maps result)))))))
 
 (defn query
   "Query database and return results as a lazy Clojure sequence. Note
