@@ -93,10 +93,12 @@
     (execute conn (prepare conn statement) kws)
 
     ;; Convert keyword arguments to a Map<String,Value>. Should we
-    ;; also allow String keys in the input?
+    ;; also allow String keys in the input? Also pass (opaque?)
+    ;; `Value` instances as is, do not wrap them.
     (instance? PreparedStatement statement)
     (let [value-map (into {} (for [[k v] kws]
-                               [(name k) (Value. v)]))
+                               [(name k)
+                                (if (instance? Value v) v (Value. v))]))
           results (.execute conn statement value-map)]
       (as-maps results))))
 
