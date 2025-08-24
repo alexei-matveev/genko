@@ -1,6 +1,4 @@
 (ns genko.kuzu
-  (:require
-   [clojure.tools.logging :as log])
   (:import [com.kuzudb Database Connection
             QueryResult FlatTuple Value
             PreparedStatement DataType DataTypeID]))
