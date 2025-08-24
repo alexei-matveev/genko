@@ -69,6 +69,9 @@ inspiration:
 * https://llm.datasette.io with
   [Tools](https://simonwillison.net/2025/May/27/llm-tools/)
 * https://github.com/baalimago/clai
+* [`mini-swe-agent`](https://github.com/SWE-agent/mini-swe-agent) in
+  "100 lines" of Python. This was mentioned in one of the top-comments
+  in [HN-discussion](https://news.ycombinator.com/item?id=45001051)
 
 For the case of LLMs writing their own tools see also:
 
