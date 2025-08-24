@@ -35,19 +35,20 @@
 ;; [1] https://docs.kuzudb.com/client-apis/java/
 
 
-;; FIXME: What if `QueryResult` `.hasNextQueryResult` in the current
-;; implementation of `as-map`? Do we need another seq layer? Ant what
-;; about nested types?
+;; FIXME: What if `QueryResult` `.hasNextQueryResult`?  In the current
+;; implementation of `as-maps` we would not even notice that! Do we
+;; need another seq layer? And what about nested types?
 ;;
 ;; As long as we dont invoke instance methods on Clojure values, we
 ;; need neither reflection nor type hints. The method `.getValue` of
 ;; Kuzu `Value` is generic and effectivly always returns an `Object`
 ;; after type erasure. It is a blessing we dont need to go over all
-;; the Kuzu types & type IDs yet:
+;; the Kuzu types & type IDs yet [1]:
 ;;
 ;;   ^DataType data-type (.getDataType value)
 ;;   ^DataTypeID type-id (.getID data-type)
 ;;
+;; [1] https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
 (defn- as-maps [^QueryResult result]
   (let [n (.getNumColumns result)
         cols (for [i (range n)]
@@ -227,9 +228,9 @@
   (query conn "match  ()-[r:Follows]->() return r limit 1")
   ;; => ({:r #object[com.kuzudb.Value 0xc51ee93 "(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)"]})
 
-  ;; FISME: This possibly illegal syntax breaks Kuzu runtime, so far
-  ;; without any Exception or error message. Will we ever need to pass
-  ;; nodes or relations back?
+  ;; FIXME: This possibly illegal syntax breaks Kuzu/JVM runtime, so
+  ;; far without any Exception or error message. Will we ever need to
+  ;; pass nodes or relations back?
   (let [adams (query conn "match (a:User {name: 'Adam'}) return a")]
     (for [a adams]
       (execute conn "match (a) where a = $a return a.name" a)))
