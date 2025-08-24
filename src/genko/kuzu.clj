@@ -156,10 +156,11 @@
   ;; // Create an empty on-disk database and connect to it
   ;; Database db = new Database("example.kuzu");
   ;; Connection conn = new Connection(db);
-  (def db (Database. ":memory:"))
+  (do
+    (def db (Database. ":memory:"))
+    (def conn (Connection. db)))
   db
   (.close db)
-  (def conn (Connection. db))
   conn
   (.close conn)
 
@@ -225,6 +226,13 @@
 
   (query conn "match  ()-[r:Follows]->() return r limit 1")
   ;; => ({:r #object[com.kuzudb.Value 0xc51ee93 "(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)"]})
+
+  ;; FISME: This possibly illegal syntax breaks Kuzu runtime, so far
+  ;; without any Exception or error message. Will we ever need to pass
+  ;; nodes or relations back?
+  (let [adams (query conn "match (a:User {name: 'Adam'}) return a")]
+    (for [a adams]
+      (execute conn "match (a) where a = $a return a.name" a)))
 
   ;; Close and release the underlying resources. This method is
   ;; invoked automatically on objects managed by the
