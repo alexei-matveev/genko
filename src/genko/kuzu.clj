@@ -143,10 +143,15 @@
     ;; leave it commented here.
     ;;
     ;; [1] https://github.com/kuzudb/kuzu/issues/5938
-    #_(doall
+    #_(println
      (let [adams (query conn "match (a:User {name: 'Adam'}) return a")]
        (for [a adams]
-         (execute conn "match (a) where a = $a return a.name" a))))
+         (do
+           ;; Map with bindings seems ok at this point:
+           ;;
+           ;;   a= {:a #object[com.kuzudb.Value 0x218f2f51 {_ID: 0:0, ;; _LABEL: User, name: Adam, age: 30}]}
+           (println "a=", a)
+           (execute conn "match (a) where a = $a return a.name" a)))))
 
     (let [q "MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;"]
       (doall (query conn q)))))
