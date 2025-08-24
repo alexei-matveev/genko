@@ -113,10 +113,9 @@
                "COPY Follows FROM 'resources/follows.csv'"
                "COPY LivesIn FROM 'resources/lives-in.csv'"]]
       ;; All of these are queries as well, and return a 1x1 table,
-      ;; with a string as `:result`, cf.:
+      ;; with a string as `:result`. These are the printed results of
+      ;; the queries above:
       ;;
-      ;;   (println (as-maps (.query conn q)))
-      ;;   =>
       ;;   ({:result Table User has been created.})
       ;;   ({:result Table City has been created.})
       ;;   ({:result Table Follows has been created.})
@@ -125,7 +124,7 @@
       ;;   ({:result 3 tuples have been copied to the City table.})
       ;;   ({:result 4 tuples have been copied to the Follows table.})
       ;;   ({:result 4 tuples have been copied to the LivesIn table.})
-      (.query conn q))
+      (query conn q))
 
     ;; Execute a simple query.  We must force the lazy seq before
     ;; closing `Connection` & `Database`, see `with-open` above!
