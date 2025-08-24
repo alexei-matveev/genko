@@ -50,7 +50,7 @@
     x))
 
 
-(defn- tuples [^QueryResult result]
+(defn- as-maps [^QueryResult result]
   (let [n (.getNumColumns result)
         cols (for [i (range n)]
                (keyword (.getColumnName result i)))]
@@ -61,7 +61,7 @@
                                 :let [^Value value (.getValue tuple i)]]
                             (get-value value))]
                (zipmap cols values))
-             (tuples result))))))
+             (as-maps result))))))
 
 
 (defn- demo []
@@ -94,7 +94,7 @@
       ;; (while (.hasNext result)
       ;;     (let [^FlatTuple row (.getNext result)]
       ;;       (println row)))
-      (doall (tuples result)))))
+      (doall (as-maps result)))))
 
 (comment
   (demo)
@@ -155,7 +155,7 @@
     ;;     System.out.print(row);
     ;; }
 
-    (tuples result))
+    (as-maps result))
 
   ;; https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
 
