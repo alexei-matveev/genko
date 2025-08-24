@@ -78,6 +78,19 @@
                "COPY City FROM 'resources/city.csv'"
                "COPY Follows FROM 'resources/follows.csv'"
                "COPY LivesIn FROM 'resources/lives-in.csv'"]]
+      ;; All of these are queries as well, and return a 1x1 table,
+      ;; with a string as `:result`, cf.:
+      ;;
+      ;;   (println (as-maps (.query conn q)))
+      ;;   =>
+      ;;   ({:result Table User has been created.})
+      ;;   ({:result Table City has been created.})
+      ;;   ({:result Table Follows has been created.})
+      ;;   ({:result Table LivesIn has been created.})
+      ;;   ({:result 4 tuples have been copied to the User table.})
+      ;;   ({:result 3 tuples have been copied to the City table.})
+      ;;   ({:result 4 tuples have been copied to the Follows table.})
+      ;;   ({:result 4 tuples have been copied to the LivesIn table.})
       (.query conn q))
 
     ;; Execute a simple query.
