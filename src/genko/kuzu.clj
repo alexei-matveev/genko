@@ -203,6 +203,13 @@
   (execute conn "match (a:User {name: $name}) detach delete a" {:name "John"})
   (execute conn ps {})
 
+  ;; Why ist extra parameter in the map a problem? One gets an error
+  ;; message: "Parameter ... not found".
+  (execute conn "match (a:User {name: $name}) return a.*" {:name "Adam" :age 22}) ; => Parameter age not found.
+  (execute conn "match (a:User {name: $name}) return a.*" {:name "Adam"}) => ({:a.name "Adam", :a.age 30})
+
+  (execute conn "match (a:User {name: $name}) return a" {:name "Adam"}) ; => Type of value is not supported in value_get_value
+
   ;; Close and release the underlying resources. This method is
   ;; invoked automatically on objects managed by the
   ;; try-with-resources statement.
