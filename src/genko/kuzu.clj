@@ -187,6 +187,12 @@
            return a.name, f.since, b.name;"]
     (execute conn q {:year 2021}))
 
+  (execute conn "match (a:User) return a.*" {})
+  (execute conn "create (a:User {name: $name, age: $age})" {:name "John" :age 21})
+  (execute conn "match (a:User) return a.*" {})
+  (execute conn "match (a:User {name: $name}) detach delete a" {:name "John"})
+  (execute conn "match (a:User) return a.*" {})
+
   ;; https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
 
   ;; Close and release the underlying resources. This method is
