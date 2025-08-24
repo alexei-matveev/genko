@@ -62,19 +62,16 @@
   (with-open [^Database db (Database. ":memory:")
               ^Connection conn (Connection. db)]
 
-    ;; Create tables.
-    (do
-      (.query conn "CREATE NODE TABLE User(name STRING PRIMARY KEY, age INT64)")
-      (.query conn "CREATE NODE TABLE City(name STRING PRIMARY KEY, population INT64)")
-      (.query conn "CREATE REL TABLE Follows(FROM User TO User, since INT64)")
-      (.query conn "CREATE REL TABLE LivesIn(FROM User TO City)"))
-
-    ;; Load data.
-    (do
-      (.query conn "COPY User FROM 'resources/user.csv'")
-      (.query conn "COPY City FROM 'resources/city.csv'")
-      (.query conn "COPY Follows FROM 'resources/follows.csv'")
-      (.query conn "COPY LivesIn FROM 'resources/lives-in.csv'"))
+    ;; Create tables, Load data.
+    (doseq [q ["CREATE NODE TABLE User(name STRING PRIMARY KEY, age INT64)"
+               "CREATE NODE TABLE City(name STRING PRIMARY KEY, population INT64)"
+               "CREATE REL TABLE Follows(FROM User TO User, since INT64)"
+               "CREATE REL TABLE LivesIn(FROM User TO City)"
+               "COPY User FROM 'resources/user.csv'"
+               "COPY City FROM 'resources/city.csv'"
+               "COPY Follows FROM 'resources/follows.csv'"
+               "COPY LivesIn FROM 'resources/lives-in.csv'"]]
+      (.query conn q))
 
     ;; Execute a simple query.
     (let [q "MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;"
