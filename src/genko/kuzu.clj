@@ -3,7 +3,7 @@
    [clojure.tools.logging :as log])
   (:import [com.kuzudb Database Connection
             QueryResult FlatTuple Value
-            DataType DataTypeID]))
+            PreparedStatement DataType DataTypeID]))
 
 
 ;; NOTE: Kuzu *overwrites* contents of the FlatTuple on iterations
@@ -71,6 +71,22 @@
   [^Connection conn ^String q]
   (let [^QueryResult result (.query conn q)]
     (as-maps result)))
+
+
+(defn execute
+  "Execute query with arguments and return results as a lazy Clojure
+  sequence. The caller should evaluate results before closing
+  connection!"
+  [^Connection conn ^String q kws]
+
+  ;; TODO: Specialize code for (isinstance? PreparedStatement q)!
+  (let [^PreparedStatement p (.prepare conn q)
+        ;; Keyword Arguments as Map<String,Value>. Should we also
+        ;; allow String keys in the input?
+        value-map (into {} (for [[k v] kws]
+                             [(name k) (Value. v)]))
+        results (.execute conn p value-map)]
+    (as-maps results)))
 
 
 (defn- demo []
@@ -164,18 +180,12 @@
   ;; // Execute a simple query.
   ;; QueryResult result =
   ;;         conn.query("MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;");
-  (let [
-        ^QueryResult result (.query conn "MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;")
-        ;; ^QueryResult result (.query conn "MATCH (a:User) RETURN a.name;")
-        ]
-    (println result)
-    (println (.hasNext result))
-    ;; while (result.hasNext()) {
-    ;;     FlatTuple row = result.getNext();
-    ;;     System.out.print(row);
-    ;; }
+  (query conn
+         "MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;")
 
-    (as-maps result))
+  (let [q "match (a:User)-[f:Follows]->(b:User) where f.since < $year
+           return a.name, f.since, b.name;"]
+    (execute conn q {:year 2021}))
 
   ;; https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
 
