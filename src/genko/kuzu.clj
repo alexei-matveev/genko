@@ -35,10 +35,6 @@
 ;; [1] https://docs.kuzudb.com/client-apis/java/
 
 
-;; FIXME: What if `QueryResult` `.hasNextQueryResult`?  In the current
-;; implementation of `as-maps` we would not even notice that! Do we
-;; need another seq layer? And what about nested types?
-;;
 ;; As long as we dont invoke instance methods on Clojure values, we
 ;; need neither reflection nor type hints. The method `.getValue` of
 ;; Kuzu `Value` is generic and effectivly always returns an `Object`
@@ -48,7 +44,12 @@
 ;;   ^DataType data-type (.getDataType value)
 ;;   ^DataTypeID type-id (.getID data-type)
 ;;
+;; FIXME: What if `QueryResult` `.hasNextQueryResult` [2]?  In the
+;; current implementation of `as-maps` we would not even notice that!
+;; Do we need another seq layer? And what about nested types?
+;;
 ;; [1] https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
+;; [2] https://github.com/kuzudb/kuzu/commit/a39a10d6839458b865e29e5708bf1dff4207ad6d
 (defn- as-maps [^QueryResult result]
   (let [n (.getNumColumns result)
         cols (for [i (range n)]
