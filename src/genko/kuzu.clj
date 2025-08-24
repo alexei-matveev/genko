@@ -64,8 +64,17 @@
              (as-maps result))))))
 
 
+(defn query
+  "Query database and return results as a lazy Clojure sequence. Note
+  that you need to eventually force evaluation of the sequence before
+  closing connection to the database!"
+  [^Connection conn ^String q]
+  (let [^QueryResult result (.query conn q)]
+    (as-maps result)))
+
+
 (defn- demo []
-  ;; Create an empty on-disk database and connect to it
+  ;; Create an empty in-memory or on-disk database and connect to it.
   (with-open [^Database db (Database. ":memory:")
               ^Connection conn (Connection. db)]
 
@@ -93,21 +102,19 @@
       ;;   ({:result 4 tuples have been copied to the LivesIn table.})
       (.query conn q))
 
-    ;; Execute a simple query.
-    (let [q "MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;"
-          ^QueryResult result (.query conn q)]
+    ;; Execute a simple query.  We must force the lazy seq before
+    ;; closing `Connection` & `Database`, see `with-open` above!
+    ;; Otherwise return values cannot be printed outside of this
+    ;; function: "Error printing return value at
+    ;; com.kuzudb.Native/kuzuQueryResultToString ...". This commented
+    ;; code would work here though:
+    ;;
+    ;; (while (.hasNext result)
+    ;;     (let [^FlatTuple row (.getNext result)]
+    ;;       (println row)))
+    (let [q "MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;"]
+      (doall (query conn q)))))
 
-      ;; We must force the lazy seq before closing `Connection` &
-      ;; `Database`, see `with-open` above! Otherwise not even return
-      ;; values cannot be printed outside of this function: "Error
-      ;; printing return value at
-      ;; com.kuzudb.Native/kuzuQueryResultToString ...". This
-      ;; commented code would work here though:
-      ;;
-      ;; (while (.hasNext result)
-      ;;     (let [^FlatTuple row (.getNext result)]
-      ;;       (println row)))
-      (doall (as-maps result)))))
 
 (comment
   (demo)
