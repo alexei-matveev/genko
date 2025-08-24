@@ -243,13 +243,16 @@
   (query conn "match ()-[r:Follows]->() return r limit 1")
   ;; => ({:r #object[com.kuzudb.Value 0xc51ee93 "(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)"]})
 
-  ;; Cypher structs (?) were probably the best candidates to be
-  ;; represented as Clojure maps:
+  ;; Cypher `STRUCT` is probably the best candidate to be represented
+  ;; as a Clojure map:
   (query conn "RETURN {name: 'Alice', age: 42, active: true} AS person")
   ;; => ({:person #object[com.kuzudb.Value 0x254cc0a7 "{name: Alice, age: 42, active: True}"]})
 
-  (query conn "RETURN {name: 'Alice', x: {y: 42}} AS recursive")
-  ;; => ({:recursive #object[com.kuzudb.Value 0x5a221e22 "{name: Alice, x: {y: 42}}"]})
+  (let [as (query conn "RETURN {name: 'Alice', x: {y: 42}} AS a")]
+    (for [a as :let [a (:a a)
+                     t (str (.getID (.getDataType a)))]]
+      [t a]))
+  ;; => (["STRUCT" #object[com.kuzudb.Value 0x445fc74b "{name: Alice, x: {y: 42}}"]])
 
   ;; FIXME: This possibly illegal syntax breaks Kuzu/JVM runtime, so
   ;; far without any Exception or error message. Will we ever need to
