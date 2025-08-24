@@ -65,7 +65,8 @@ inspiration:
 * https://github.com/QwenLM/qwen-code
 * https://github.com/google-gemini/gemini-cli
 * https://github.com/openai/codex
-* https://docs.anthropic.com/en/docs/claude-code/sdk
+* [Cloude Code](https://docs.anthropic.com/en/docs/claude-code/sdk)
+  and [Discusisons](https://news.ycombinator.com/item?id=44998295)
 * https://llm.datasette.io with
   [Tools](https://simonwillison.net/2025/May/27/llm-tools/)
 * https://github.com/baalimago/clai
