@@ -6,6 +6,27 @@
             DataType DataTypeID]))
 
 
+;; NOTE: Kuzu *overwrites* contents of the FlatTuple on iterations
+;; with .getNext [1]! If you force the result seq first and only look
+;; inside FlatTuple *after* that you will be dissappointed:
+;;
+;;   (map str (doall (result-seq result))) ; WRONG!
+;;   =>
+;;   ("Zhang|2022|Noura\n"
+;;    "Zhang|2022|Noura\n"
+;;    "Zhang|2022|Noura\n"
+;;    "Zhang|2022|Noura\n")
+;;
+;; This does work however:
+;;
+;;   (mapv str (result-seq result))
+;;   =>
+;;   ["Adam|2020|Karissa\n"
+;;    "Adam|2020|Zhang\n"
+;;    "Karissa|2021|Zhang\n"
+;;    "Zhang|2022|Noura\n"]
+;;
+;; [1] https://docs.kuzudb.com/client-apis/java/
 (defn- result-seq [^QueryResult result]
   (lazy-seq
    (when (.hasNext result)
@@ -94,25 +115,6 @@
     #_(while (.hasNext result)
         (let [^FlatTuple row (.getNext result)]
           (println row)))
-
-    ;; NOTE: Kuzu *overwrites* contents of the FlatTuple on iterations
-    ;; with .getNext [1]! If you force the result seq first and only
-    ;; look inside FlatTuple *after* that you will be dissappointed:
-    ;;
-    ;;   (map str (doall (result-seq result))) ; WRONG!
-    ;;   =>
-    ;;   ("Zhang|2022|Noura\n" "Zhang|2022|Noura\n" "Zhang|2022|Noura\n" "Zhang|2022|Noura\n")
-    ;;
-    ;; This does work however:
-    ;;
-    ;;   (mapv str (result-seq result))
-    ;;   =>
-    ;;   ["Adam|2020|Karissa\n"
-    ;;    "Adam|2020|Zhang\n"
-    ;;    "Karissa|2021|Zhang\n"
-    ;;    "Zhang|2022|Noura\n"]
-    ;;
-    ;; [1] https://docs.kuzudb.com/client-apis/java/
 
     (tuples result))
   =>
