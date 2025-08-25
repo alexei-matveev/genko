@@ -236,14 +236,15 @@
   (execute conn "match (a:User {name: $name}) return a.*" {:name "Adam" :age 22}) ; => Parameter age not found.
   (execute conn "match (a:User {name: $name}) return a.*" {:name "Adam"}) => ({:a.name "Adam", :a.age 30})
 
-  ;; Some Kuzu values are opaque so that `.getValue` fails see
-  ;; `try/catch` logic in `as-maps`. Do we want/need to convert them
-  ;; to Clojure maps? Isn't Kuzu `Value` serializable to JSON?  If so,
-  ;; it must be representable as Clojure map as well. See
-  ;; `ValueNodeUtil` & `ValueRelUtil` [1], eventually. Also `STRUCT`,
-  ;; `MAP`, `UNION` und mehr are all separate Cypher data
-  ;; types [2]. Oje!
+  ;; Cypher has many types and several kinds of types [0]. Some Kuzu
+  ;; values are opaque so that `.getValue` fails see `try/catch` logic
+  ;; in `as-maps`. Do we want/need to convert them to Clojure maps?
+  ;; Isn't Kuzu `Value` serializable to JSON?  If so, it must be
+  ;; representable as Clojure map as well. See `ValueNodeUtil` &
+  ;; `ValueRelUtil` [1], eventually. Also `MAP`, `STRUCT`, `UNION` and
+  ;; others, are all separate Cypher data types [2]. Oje!
   ;;
+  ;; [0] https://github.com/opencypher/openCypher/blob/main/cip/0.baseline/openCypher9.pdf
   ;; [1] https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/ValueNodeUtil.java
   ;; [2] https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
   (let [as (execute conn "match (a:User {name: $name}) return a" {:name "Adam"})]
@@ -268,9 +269,11 @@
       (inspect-value a)))
   => (("STRUCT" "{name: Alice, x: {y: 42}}"))
 
-  ;; FIXME: This possibly illegal syntax breaks Kuzu/JVM runtime, so
-  ;; far without any Exception or error message. Will we ever need to
-  ;; pass nodes or relations back?
+  ;; FIXME: This likely illegal syntax, but it crashes Kuzu/JVM
+  ;; runtime.  Will we ever need to pass nodes or relations back?
+  ;; According to OpenCypher docs, `NODE`, `RELATIONSHIP` and `PATH`
+  ;; are "structural types" that "can be returned from queries"
+  ;; but "cannot be used as parameters".
   (let [adams (query conn "match (a:User {name: 'Adam'}) return a")]
     (for [a adams]
       (execute conn "match (a) where a = $a return a.name" a)))
