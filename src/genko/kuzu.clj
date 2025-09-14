@@ -236,17 +236,23 @@
   (execute conn "match (a:User {name: $name}) return a.*" {:name "Adam" :age 22}) ; => Parameter age not found.
   (execute conn "match (a:User {name: $name}) return a.*" {:name "Adam"}) => ({:a.name "Adam", :a.age 30})
 
-  ;; Cypher has many types and several kinds of types [0]. Some Kuzu
-  ;; values are opaque so that `.getValue` fails see `try/catch` logic
-  ;; in `as-maps`. Do we want/need to convert them to Clojure maps?
-  ;; Isn't Kuzu `Value` serializable to JSON?  If so, it must be
-  ;; representable as Clojure map as well. See `ValueNodeUtil` &
-  ;; `ValueRelUtil` [1], eventually. Also `MAP`, `STRUCT`, `UNION` and
-  ;; others, are all separate Cypher data types [2]. Oje!
+  ;; Cypher has many types, noteably lists and maps, and several kinds
+  ;; of types, see section "Types, lists and maps" of the OpenCypher
+  ;; spec [0]. Some Kuzu values are opaque so that `.getValue` fails
+  ;; see `try/catch` logic in `as-maps`. Do we want/need to convert
+  ;; them to Clojure maps?  Isn't Kuzu `Value` serializable to JSON?
+  ;; If so, it must be representable as Clojure map as well. See
+  ;; `ValueNodeUtil` & `ValueRelUtil` [1], eventually. Also `MAP`,
+  ;; `STRUCT`, `UNION` and others, are all separate Kuzu data
+  ;; types [2]. Oje!
   ;;
   ;; [0] https://github.com/opencypher/openCypher/blob/main/cip/0.baseline/openCypher9.pdf
   ;; [1] https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/ValueNodeUtil.java
   ;; [2] https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
+  (query conn "return 7 as a")          ; => ({:a 7})
+  (query conn "return [7, 42] as a") ; => ({:a #object[com.kuzudb.Value 0x1df97568 "[7,42]"]})
+  (query conn "return {x: 7, y: 42} as a") ; => ({:a #object[com.kuzudb.Value 0x3842245 "{x: 7, y: 42}"]})
+
   (let [as (execute conn "match (a:User {name: $name}) return a" {:name "Adam"})]
     (for [a as :let [a (:a a)]]
       (inspect-value a)))
