@@ -168,7 +168,7 @@
 ;; ChatGPT after 45s thinking and me researching for hours to ask the
 ;; "right" questions produces this recursive converter: Kuzu Value ->
 ;; Clojure.
-(defn kuzu-value->clj
+(defn kuzu->clj
   [^Value v]
   (when (or (nil? v) (.isNull v))
     ;; null/NULL maps to nil
@@ -184,7 +184,7 @@
           (into {}
                 (map (fn [^java.util.Map$Entry e]
                        [(keyword (.getKey e))
-                        (kuzu-value->clj (.getValue e))])
+                        (kuzu->clj (.getValue e))])
                      (.entrySet jmap)))
           (finally
             (.close ks)))) ;; close wrapper (releases native refs)
@@ -195,7 +195,7 @@
             n (int (.getListSize kl))]
         (try
           (->> (range n)
-               (mapv (fn [i] (kuzu-value->clj (.getListElement kl (long i))))))
+               (mapv (fn [i] (kuzu->clj (.getListElement kl (long i))))))
           (finally
             (.close kl))))
 
@@ -206,8 +206,8 @@
         (try
           (into {}
                 (map (fn [i]
-                       (let [k (kuzu-value->clj (.getKey km (long i)))
-                             val (kuzu-value->clj (.getValue km (long i)))]
+                       (let [k (kuzu->clj (.getKey km (long i)))
+                             val (kuzu->clj (.getValue km (long i)))]
                          ;; if key is string, convert to keyword; otherwise keep as-is
                          [(if (string? k) (keyword k) k) val]))
                      (range n)))
@@ -310,7 +310,7 @@
            "return {x: 7, y: 42} as a"
            "return map([1, 2], ['x', 'y']) as a"]]
     (let [{:keys [a]} (query conn q)]
-      (kuzu-value->clj a)))
+      (kuzu->clj a)))
   => ([7 42] {:x 7, :y 42} {1 "x", 2 "y"})
 
   (let [as (execute conn "match (a:User {name: $name}) return a" {:name "Adam"})]
