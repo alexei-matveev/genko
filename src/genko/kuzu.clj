@@ -164,6 +164,61 @@
     (map str [tid v])))
 
 
+;; ChatGPT after 45s thinking and me researching for hours to ask the
+;; "right" questions produces this recursive converter:
+;; com.kuzudb.Value -> Clojure.
+(defn kuzu-value->clj
+  [^com.kuzudb.Value v]
+  (when (or (nil? v) (.isNull v))
+    ;; null/NULL maps to nil
+    nil)
+  (let [^com.kuzudb.DataType dt (.getDataType v)
+        id (.getID dt)]
+    (cond
+      ;; STRUCT -> Clojure map (keywordized keys)
+      (= id com.kuzudb.DataTypeID/STRUCT)
+      (let [^com.kuzudb.KuzuStruct ks (com.kuzudb.KuzuStruct. v)
+            jmap (.toMap ks)] ;; returns java.util.Map<String, Value>
+        (try
+          (into {}
+                (map (fn [^java.util.Map$Entry e]
+                       [(keyword (.getKey e))
+                        (kuzu-value->clj (.getValue e))])
+                     (.entrySet jmap)))
+          (finally
+            (.close ks)))) ;; close wrapper (releases native refs)
+
+      ;; LIST -> vector
+      (= id com.kuzudb.DataTypeID/LIST)
+      (let [^com.kuzudb.KuzuList kl (com.kuzudb.KuzuList. v)
+            n (int (.getListSize kl))]
+        (try
+          (->> (range n)
+               (mapv (fn [i] (kuzu-value->clj (.getListElement kl (long i))))))
+          (finally
+            (.close kl))))
+
+      ;; MAP -> Clojure map (keys converted recursively, not keywordized unless string)
+      (= id com.kuzudb.DataTypeID/MAP)
+      (let [^com.kuzudb.KuzuMap km (com.kuzudb.KuzuMap. v)
+            n (int (.getNumFields km))]
+        (try
+          (into {}
+                (map (fn [i]
+                       (let [k (kuzu-value->clj (.getKey km (long i)))
+                             val (kuzu-value->clj (.getValue km (long i)))]
+                         ;; if key is string, convert to keyword; otherwise keep as-is
+                         [(if (string? k) (keyword k) k) val]))
+                     (range n)))
+          (finally
+            (.close km))))
+
+      ;; fallback: primitive / simple Java object (String, Long, Double, Boolean, etc.)
+      :else
+      ;; .getValue returns the underlying Java value for primitive types
+      (.getValue v))))
+
+
 (comment
   (demo)
   =>
@@ -249,9 +304,13 @@
   ;; [0] https://github.com/opencypher/openCypher/blob/main/cip/0.baseline/openCypher9.pdf
   ;; [1] https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/ValueNodeUtil.java
   ;; [2] https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
-  (query conn "return 7 as a")          ; => ({:a 7})
-  (query conn "return [7, 42] as a") ; => ({:a #object[com.kuzudb.Value 0x1df97568 "[7,42]"]})
-  (query conn "return {x: 7, y: 42} as a") ; => ({:a #object[com.kuzudb.Value 0x3842245 "{x: 7, y: 42}"]})
+  ;; https://docs.kuzudb.com/cypher/data-types/
+  (for [q ["return [7, 42] as a"
+           "return {x: 7, y: 42} as a"
+           "return map([1, 2], ['x', 'y']) as a"]]
+    (let [{:keys [a]} (query conn q)]
+      (kuzu-value->clj a)))
+  => ([7 42] {:x 7, :y 42} {1 "x", 2 "y"})
 
   (let [as (execute conn "match (a:User {name: $name}) return a" {:name "Adam"})]
     (for [a as :let [a (:a a)]]
@@ -265,14 +324,8 @@
 
   ;; Cypher `STRUCT` is probably the best candidate to be represented
   ;; as a Clojure map:
-  (let [as(query conn "RETURN {name: 'Alice', age: 42, active: true} AS a")]
-    (for [a as :let [a (:a a)]]
-      (inspect-value a)))
-  => (("STRUCT" "{name: Alice, age: 42, active: True}"))
-
-  (let [as (query conn "RETURN {name: 'Alice', x: {y: 42}} AS a")]
-    (for [a as :let [a (:a a)]]
-      (inspect-value a)))
+  (for[{:keys [a]} (query conn "RETURN {name: 'Alice', x: {y: 42}} AS a")]
+    (inspect-value a))
   => (("STRUCT" "{name: Alice, x: {y: 42}}"))
 
   ;; FIXME: This likely illegal syntax, but it crashes Kuzu/JVM
