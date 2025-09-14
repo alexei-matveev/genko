@@ -1,7 +1,8 @@
 (ns genko.kuzu
   (:import [com.kuzudb Database Connection
             QueryResult FlatTuple Value
-            PreparedStatement DataType DataTypeID]))
+            PreparedStatement
+            DataType DataTypeID KuzuList KuzuStruct KuzuMap]))
 
 
 ;; NOTE: Kuzu *overwrites* contents of the `FlatTuple` on iterations
@@ -165,19 +166,19 @@
 
 
 ;; ChatGPT after 45s thinking and me researching for hours to ask the
-;; "right" questions produces this recursive converter:
-;; com.kuzudb.Value -> Clojure.
+;; "right" questions produces this recursive converter: Kuzu Value ->
+;; Clojure.
 (defn kuzu-value->clj
-  [^com.kuzudb.Value v]
+  [^Value v]
   (when (or (nil? v) (.isNull v))
     ;; null/NULL maps to nil
     nil)
-  (let [^com.kuzudb.DataType dt (.getDataType v)
+  (let [^DataType dt (.getDataType v)
         id (.getID dt)]
     (cond
       ;; STRUCT -> Clojure map (keywordized keys)
-      (= id com.kuzudb.DataTypeID/STRUCT)
-      (let [^com.kuzudb.KuzuStruct ks (com.kuzudb.KuzuStruct. v)
+      (= id DataTypeID/STRUCT)
+      (let [^KuzuStruct ks (KuzuStruct. v)
             jmap (.toMap ks)] ;; returns java.util.Map<String, Value>
         (try
           (into {}
@@ -189,8 +190,8 @@
             (.close ks)))) ;; close wrapper (releases native refs)
 
       ;; LIST -> vector
-      (= id com.kuzudb.DataTypeID/LIST)
-      (let [^com.kuzudb.KuzuList kl (com.kuzudb.KuzuList. v)
+      (= id DataTypeID/LIST)
+      (let [^KuzuList kl (KuzuList. v)
             n (int (.getListSize kl))]
         (try
           (->> (range n)
@@ -199,8 +200,8 @@
             (.close kl))))
 
       ;; MAP -> Clojure map (keys converted recursively, not keywordized unless string)
-      (= id com.kuzudb.DataTypeID/MAP)
-      (let [^com.kuzudb.KuzuMap km (com.kuzudb.KuzuMap. v)
+      (= id DataTypeID/MAP)
+      (let [^KuzuMap km (KuzuMap. v)
             n (int (.getNumFields km))]
         (try
           (into {}
