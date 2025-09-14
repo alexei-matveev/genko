@@ -5,6 +5,63 @@
             DataType DataTypeID KuzuList KuzuStruct KuzuMap]))
 
 
+;; Kuzu `Value` is a generic object, one needs to convert them to
+;; `KuzuList`, `KuzuStruct` or `KuzuMap` to use type specific
+;; methods. ChatGPT after 45s thinking with me researching for hours
+;; to ask the right questions produce this recursive converter from
+;; Kuzu Values to Clojure objects.
+(defn kuzu->clj
+  [^Value v]
+  (when (or (nil? v) (.isNull v))
+    ;; null/NULL maps to nil
+    nil)
+  (let [^DataType dt (.getDataType v)
+        id (.getID dt)]
+    (cond
+      ;; STRUCT -> Clojure map (keywordized keys)
+      (= id DataTypeID/STRUCT)
+      (let [^KuzuStruct ks (KuzuStruct. v)
+            jmap (.toMap ks)] ;; returns java.util.Map<String, Value>
+        (try
+          (into {}
+                (map (fn [^java.util.Map$Entry e]
+                       [(keyword (.getKey e))
+                        (kuzu->clj (.getValue e))])
+                     (.entrySet jmap)))
+          (finally
+            (.close ks)))) ;; close wrapper (releases native refs)
+
+      ;; LIST -> vector
+      (= id DataTypeID/LIST)
+      (let [^KuzuList kl (KuzuList. v)
+            n (int (.getListSize kl))]
+        (try
+          (->> (range n)
+               (mapv (fn [i] (kuzu->clj (.getListElement kl (long i))))))
+          (finally
+            (.close kl))))
+
+      ;; MAP -> Clojure map (keys converted recursively, not keywordized unless string)
+      (= id DataTypeID/MAP)
+      (let [^KuzuMap km (KuzuMap. v)
+            n (int (.getNumFields km))]
+        (try
+          (into {}
+                (map (fn [i]
+                       (let [k (kuzu->clj (.getKey km (long i)))
+                             val (kuzu->clj (.getValue km (long i)))]
+                         ;; if key is string, convert to keyword; otherwise keep as-is
+                         [(if (string? k) (keyword k) k) val]))
+                     (range n)))
+          (finally
+            (.close km))))
+
+      ;; fallback: primitive / simple Java object (String, Long, Double, Boolean, etc.)
+      :else
+      ;; .getValue returns the underlying Java value for primitive types
+      (.getValue v))))
+
+
 ;; NOTE: Kuzu *overwrites* contents of the `FlatTuple` on iterations
 ;; with `.getNext` [1]! If you force the result seq *first* and only
 ;; look inside FlatTuple *after* that you will be dissappointed:
@@ -61,7 +118,7 @@
              values (for [i (range n)
                           :let [^Value value (.getValue tuple i)]]
                       (try
-                        (.getValue value)
+                        (kuzu->clj value)
                         ;; Some Kuzu Values are opaque:
                         (catch Exception e value)))
              row (zipmap cols values)]
@@ -165,61 +222,6 @@
     (map str [tid v])))
 
 
-;; ChatGPT after 45s thinking and me researching for hours to ask the
-;; "right" questions produces this recursive converter: Kuzu Value ->
-;; Clojure.
-(defn kuzu->clj
-  [^Value v]
-  (when (or (nil? v) (.isNull v))
-    ;; null/NULL maps to nil
-    nil)
-  (let [^DataType dt (.getDataType v)
-        id (.getID dt)]
-    (cond
-      ;; STRUCT -> Clojure map (keywordized keys)
-      (= id DataTypeID/STRUCT)
-      (let [^KuzuStruct ks (KuzuStruct. v)
-            jmap (.toMap ks)] ;; returns java.util.Map<String, Value>
-        (try
-          (into {}
-                (map (fn [^java.util.Map$Entry e]
-                       [(keyword (.getKey e))
-                        (kuzu->clj (.getValue e))])
-                     (.entrySet jmap)))
-          (finally
-            (.close ks)))) ;; close wrapper (releases native refs)
-
-      ;; LIST -> vector
-      (= id DataTypeID/LIST)
-      (let [^KuzuList kl (KuzuList. v)
-            n (int (.getListSize kl))]
-        (try
-          (->> (range n)
-               (mapv (fn [i] (kuzu->clj (.getListElement kl (long i))))))
-          (finally
-            (.close kl))))
-
-      ;; MAP -> Clojure map (keys converted recursively, not keywordized unless string)
-      (= id DataTypeID/MAP)
-      (let [^KuzuMap km (KuzuMap. v)
-            n (int (.getNumFields km))]
-        (try
-          (into {}
-                (map (fn [i]
-                       (let [k (kuzu->clj (.getKey km (long i)))
-                             val (kuzu->clj (.getValue km (long i)))]
-                         ;; if key is string, convert to keyword; otherwise keep as-is
-                         [(if (string? k) (keyword k) k) val]))
-                     (range n)))
-          (finally
-            (.close km))))
-
-      ;; fallback: primitive / simple Java object (String, Long, Double, Boolean, etc.)
-      :else
-      ;; .getValue returns the underlying Java value for primitive types
-      (.getValue v))))
-
-
 (comment
   (demo)
   =>
@@ -294,23 +296,25 @@
 
   ;; Cypher has many types, noteably lists and maps, and several kinds
   ;; of types, see section "Types, lists and maps" of the OpenCypher
-  ;; spec [0]. Some Kuzu values are opaque so that `.getValue` fails
-  ;; see `try/catch` logic in `as-maps`. Do we want/need to convert
-  ;; them to Clojure maps?  Isn't Kuzu `Value` serializable to JSON?
-  ;; If so, it must be representable as Clojure map as well. See
-  ;; `ValueNodeUtil` & `ValueRelUtil` [1], eventually. Also `MAP`,
-  ;; `STRUCT`, `UNION` and others, are all separate Kuzu data
-  ;; types [2]. Oje!
+  ;; spec [0]. Kuzu has LIST and STRUCT and a distinct MAP [2,3]. Some
+  ;; Kuzu values are opaque so that `.getValue` fails see `try/catch`
+  ;; logic in `as-maps`. Do we want/need to convert them to Clojure
+  ;; maps?  Isn't Kuzu `Value` serializable to JSON?  If so, it must
+  ;; be representable as Clojure map as well. See `ValueNodeUtil` &
+  ;; `ValueRelUtil` [1], eventually.
+  ;;
+  ;; Kuzu `STRUCT` is probably the best candidate to be represented as
+  ;; a Clojure map.
   ;;
   ;; [0] https://github.com/opencypher/openCypher/blob/main/cip/0.baseline/openCypher9.pdf
   ;; [1] https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/ValueNodeUtil.java
   ;; [2] https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
-  ;; https://docs.kuzudb.com/cypher/data-types/
+  ;; [3] https://docs.kuzudb.com/cypher/data-types/
   (for [q ["return [7, 42] as a"
            "return {x: 7, y: 42} as a"
            "return map([1, 2], ['x', 'y']) as a"]]
     (let [{:keys [a]} (query conn q)]
-      (kuzu->clj a)))
+      a))
   => ([7 42] {:x 7, :y 42} {1 "x", 2 "y"})
 
   (let [as (execute conn "match (a:User {name: $name}) return a" {:name "Adam"})]
@@ -322,12 +326,6 @@
     (for [a as :let [a (:a a)]]
       (inspect-value a)))
   => (("REL" "(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)"))
-
-  ;; Cypher `STRUCT` is probably the best candidate to be represented
-  ;; as a Clojure map:
-  (for[{:keys [a]} (query conn "RETURN {name: 'Alice', x: {y: 42}} AS a")]
-    (inspect-value a))
-  => (("STRUCT" "{name: Alice, x: {y: 42}}"))
 
   ;; FIXME: This likely illegal syntax, but it crashes Kuzu/JVM
   ;; runtime.  Will we ever need to pass nodes or relations back?
