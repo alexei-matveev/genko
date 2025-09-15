@@ -59,7 +59,7 @@
     (let [reader (io/reader (:body response))]
       (letfn [(sse-lines []
                 (lazy-seq
-                 (when-let [line (.readLine reader)]
+                 (when-let [^String line (.readLine reader)]
                    (cond
                      (.startsWith line "data: ")
                      (let [data (subs line 6)]
