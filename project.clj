@@ -15,11 +15,11 @@
                  [ring-cors "0.1.13"]
                  [compojure "1.7.1"]
 
-                 ;; Experiment, eventually Datascript? Kuzu is an
-                 ;; embedded property graph database built for
-                 ;; speed. Vector search and full-text search built
-                 ;; in. Implements Cypher. Kuzu JAR is about 100M as
-                 ;; of 0.11.2.
+                 ;; Experiment, eventually go with Datascript, DuckDB
+                 ;; or even SQLite? Kuzu is an embedded property graph
+                 ;; database built for speed. Vector search and
+                 ;; full-text search built in. Implements Cypher
+                 ;; dialect. Kuzu JAR is about 100M as of 0.11.2.
                  ;;
                  ;; [1] https://github.com/kuzudb/kuzu
                  ;; [2] https://docs.kuzudb.com/installation/
