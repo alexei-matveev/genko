@@ -41,7 +41,8 @@
           (finally
             (.close kl))))
 
-      ;; MAP -> Clojure map (keys converted recursively, not keywordized unless string)
+      ;; MAP -> Clojure map (keys converted recursively, not
+      ;; keywordized even if strings)
       (= id DataTypeID/MAP)
       (let [^KuzuMap km (KuzuMap. v)
             n (int (.getNumFields km))]
@@ -50,8 +51,7 @@
                 (map (fn [i]
                        (let [k (kuzu->clj (.getKey km (long i)))
                              val (kuzu->clj (.getValue km (long i)))]
-                         ;; if key is string, convert to keyword; otherwise keep as-is
-                         [(if (string? k) (keyword k) k) val]))
+                         [k val]))
                      (range n)))
           (finally
             (.close km))))
@@ -312,10 +312,11 @@
   ;; [3] https://docs.kuzudb.com/cypher/data-types/
   (for [q ["return [7, 42] as a"
            "return {x: 7, y: 42} as a"
-           "return map([1, 2], ['x', 'y']) as a"]]
+           "return map([1, 2], ['x', 'y']) as a"
+           "return map(['x', 'y'], [1, 2]) as a"]]
     (let [{:keys [a]} (query conn q)]
       a))
-  => ([7 42] {:x 7, :y 42} {1 "x", 2 "y"})
+  => ([7 42] {:x 7, :y 42} {1 "x", 2 "y"} {"x" 1, "y" 2})
 
   (let [as (execute conn "match (a:User {name: $name}) return a" {:name "Adam"})]
     (for [a as :let [a (:a a)]]
