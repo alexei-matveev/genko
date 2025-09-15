@@ -10,7 +10,7 @@
 ;; methods. ChatGPT after 45s thinking with me researching for hours
 ;; to ask the right questions produce this recursive converter from
 ;; Kuzu Values to Clojure objects.
-(defn kuzu->clj
+(defn- kuzu->clj
   [^Value v]
   (when (or (nil? v) (.isNull v))
     ;; null/NULL maps to nil
@@ -60,6 +60,11 @@
       :else
       ;; .getValue returns the underlying Java value for primitive types
       (.getValue v))))
+
+
+;; FIXME: Implement Clojure map -> Kuzu STRUCT! And/or Seq -> LIST!
+(defn- clj->kuzu [v]
+  (if (instance? Value v) v (Value. v)))
 
 
 ;; NOTE: Kuzu *overwrites* contents of the `FlatTuple` on iterations
@@ -157,8 +162,7 @@
     ;; `Value` instances as is, do not wrap them.
     (instance? PreparedStatement statement)
     (let [value-map (into {} (for [[k v] kws]
-                               [(name k)
-                                (if (instance? Value v) v (Value. v))]))
+                               [(name k) (clj->kuzu v)]))
           results (.execute conn statement value-map)]
       (as-maps results))))
 
@@ -247,28 +251,27 @@
   ;; conn.query("CREATE NODE TABLE City(name STRING PRIMARY KEY, population INT64)");
   ;; conn.query("CREATE REL TABLE Follows(FROM User TO User, since INT64)");
   ;; conn.query("CREATE REL TABLE LivesIn(FROM User TO City)");
-  (do
-    (.query conn "CREATE NODE TABLE User(name STRING PRIMARY KEY, age INT64)")
-    (.query conn "CREATE NODE TABLE City(name STRING PRIMARY KEY, population INT64)")
-    (.query conn "CREATE REL TABLE Follows(FROM User TO User, since INT64)")
-    (.query conn "CREATE REL TABLE LivesIn(FROM User TO City)"))
-
-  ;; https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
-  (= DataTypeID/STRING DataTypeID/STRING) => true
-  DataTypeID/STRING ;; => #object[com.kuzudb.DataTypeID 0x7d7f248d "STRING"]
-  (.value DataTypeID/STRING) => 50
-  (.value DataTypeID/INT64) => 23
-
+  ;;
   ;; // Load data.
   ;; conn.query("COPY User FROM 'src/main/resources/user.csv'");
   ;; conn.query("COPY City FROM 'src/main/resources/city.csv'");
   ;; conn.query("COPY Follows FROM 'src/main/resources/follows.csv'");
   ;; conn.query("COPY LivesIn FROM 'src/main/resources/lives-in.csv'");
   (do
+    (.query conn "CREATE NODE TABLE User(name STRING PRIMARY KEY, age INT64)")
+    (.query conn "CREATE NODE TABLE City(name STRING PRIMARY KEY, population INT64)")
+    (.query conn "CREATE REL TABLE Follows(FROM User TO User, since INT64)")
+    (.query conn "CREATE REL TABLE LivesIn(FROM User TO City)")
     (.query conn "COPY User FROM 'resources/user.csv'")
     (.query conn "COPY City FROM 'resources/city.csv'")
     (.query conn "COPY Follows FROM 'resources/follows.csv'")
     (.query conn "COPY LivesIn FROM 'resources/lives-in.csv'"))
+
+  ;; https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
+  (= DataTypeID/STRING DataTypeID/STRING) => true
+  DataTypeID/STRING ;; => #object[com.kuzudb.DataTypeID 0x7d7f248d "STRING"]
+  (.value DataTypeID/STRING) => 50
+  (.value DataTypeID/INT64) => 23
 
   ;; // Execute a simple query.
   ;; QueryResult result =
