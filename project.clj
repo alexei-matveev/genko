@@ -24,13 +24,13 @@
                  ;;     [com.kuzudb/kuzu "0.11.2"]
                  ;;
                  ;; Kuzu was bought (aquihired?) by Apple.  Migrating
-                 ;; to Ladybug [3]. At first intentionally to an early
-                 ;; Version.
+                 ;; to Ladybug [3]. It did work with an early 0.12.2
+                 ;; Version of Lbug.
                  ;;
                  ;; [1] https://github.com/kuzudb/kuzu
                  ;; [2] https://docs.kuzudb.com/installation/
                  ;; [3] https://github.com/LadybugDB/ladybug
-                 [com.ladybugdb/lbug "0.12.2"]]
+                 [com.ladybugdb/lbug "0.16.0"]]
   :main genko.main
   :aot :all
   :repl-options {:init-ns genko.main})
