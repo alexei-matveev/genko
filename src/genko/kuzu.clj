@@ -1,3 +1,7 @@
+;;
+;; It ist not Kuzu anymore. It ist LadybugDB: s/Kuzu/Lbug/ in Java
+;; Class Names, s/com.kuzudb/com.ladybugdb/ in package names.
+;;
 (ns genko.kuzu
   (:import [com.ladybugdb Database Connection
             QueryResult FlatTuple Value
@@ -269,7 +273,7 @@
 
   ;; https://github.com/kuzudb/kuzu/blob/master/tools/java_api/src/main/java/com/kuzudb/DataTypeID.java
   (= DataTypeID/STRING DataTypeID/STRING) => true
-  DataTypeID/STRING ;; => #object[com.kuzudb.DataTypeID 0x7d7f248d "STRING"]
+  DataTypeID/STRING ;; #object[com.ladybugdb.DataTypeID 0x6c785156 "STRING"]
   (.value DataTypeID/STRING) => 50
   (.value DataTypeID/INT64) => 23
 
@@ -290,12 +294,12 @@
   (execute conn "match (a:User {name: $name}) detach delete a" {:name "John"})
   (execute conn ps {})
 
-  ;; Why ist extra parameter in the map a problem? One gets an error
-  ;; message: "Parameter ... not found". See GitHub issue [1].
+  ;; Extra parameter in the map is no more a problem! See GitHub
+  ;; issue [1].
   ;;
   ;; [1] https://github.com/kuzudb/kuzu/issues/5937
-  (execute conn "match (a:User {name: $name}) return a.*" {:name "Adam" :age 22}) ; => Parameter age not found.
-  (execute conn "match (a:User {name: $name}) return a.*" {:name "Adam"}) => ({:a.name "Adam", :a.age 30})
+  (execute conn "match (a:User {name: $name}) return a.*" {:name "Adam" :age 22}) => ({:a.name "Adam", :a.age 30})
+  (execute conn "match (a:User {name: $name}) return a.*" {:name "Adam"})         => ({:a.name "Adam", :a.age 30})
 
   ;; Cypher has many types, noteably lists and maps, and several kinds
   ;; of types, see section "Types, lists and maps" of the OpenCypher
@@ -331,11 +335,12 @@
       (inspect-value a)))
   => (("REL" "(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)"))
 
-  ;; FIXME: This likely illegal syntax, but it crashes Kuzu/JVM
-  ;; runtime.  Will we ever need to pass nodes or relations back?
-  ;; According to OpenCypher docs, `NODE`, `RELATIONSHIP` and `PATH`
-  ;; are "structural types" that "can be returned from queries"
-  ;; but "cannot be used as parameters".
+  ;; FIXME: This likely illegal syntax. It used to crash JVM with Kuzu
+  ;; and still does crash LadabugDB with a SIGSEGV. Will we ever need
+  ;; to pass nodes or relations back?  According to OpenCypher docs,
+  ;; `NODE`, `RELATIONSHIP` and `PATH` are "structural types"
+  ;; that "can be returned from queries" but "cannot be used as
+  ;; parameters".
   (let [adams (query conn "match (a:User {name: 'Adam'}) return a")]
     (for [a adams]
       (execute conn "match (a) where a = $a return a.name" a)))
