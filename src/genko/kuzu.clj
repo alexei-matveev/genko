@@ -99,7 +99,8 @@
 ;;
 ;; But why letting such a leaky abstraction propagate further?
 ;;
-;; [1] https://docs.kuzudb.com/client-apis/java/
+;; [1] https://docs.ladybugdb.com/client-apis/java/
+;; [2] https://docs.kuzudb.com/client-apis/java/
 
 
 ;; As long as we dont invoke instance methods on Clojure values, we
