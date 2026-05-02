@@ -1,6 +1,6 @@
 ;;
-;; It ist not Kuzu anymore. It ist LadybugDB: s/Kuzu/Lbug/ in Java
-;; Class Names, s/com.kuzudb/com.ladybugdb/ in package names.
+;; It ist not Kuzu anymore. It is LadybugDB: s/Kuzu/Lbug/ in Java
+;; class names, s/com.kuzudb/com.ladybugdb/ in package names.
 ;;
 (ns genko.kuzu
   (:import [com.ladybugdb Database Connection
@@ -9,12 +9,12 @@
             DataType DataTypeID LbugList LbugStruct LbugMap]))
 
 
-;; Kuzu `Value` is a generic object, one needs to convert them to
+;; Lbug `Value` is a generic object, one needs to convert them to
 ;; `LbugList`, `LbugStruct` or `LbugMap` to use type specific
 ;; methods. ChatGPT after 45s thinking with me researching for hours
 ;; to ask the right questions produce this recursive converter from
-;; Kuzu Values to Clojure objects.
-(defn- kuzu->clj
+;; Lbug Values to Clojure objects.
+(defn- lbug->clj
   [^Value v]
   (when (or (nil? v) (.isNull v))
     ;; null/NULL maps to nil
@@ -30,7 +30,7 @@
           (into {}
                 (map (fn [^java.util.Map$Entry e]
                        [(keyword (.getKey e))
-                        (kuzu->clj (.getValue e))])
+                        (lbug->clj (.getValue e))])
                      (.entrySet jmap)))
           (finally
             (.close ks)))) ;; close wrapper (releases native refs)
@@ -41,7 +41,7 @@
             n (int (.getListSize kl))]
         (try
           (->> (range n)
-               (mapv (fn [i] (kuzu->clj (.getListElement kl (long i))))))
+               (mapv (fn [i] (lbug->clj (.getListElement kl (long i))))))
           (finally
             (.close kl))))
 
@@ -53,8 +53,8 @@
         (try
           (into {}
                 (map (fn [i]
-                       (let [k (kuzu->clj (.getKey km (long i)))
-                             val (kuzu->clj (.getValue km (long i)))]
+                       (let [k (lbug->clj (.getKey km (long i)))
+                             val (lbug->clj (.getValue km (long i)))]
                          [k val]))
                      (range n)))
           (finally
@@ -66,12 +66,12 @@
       (.getValue v))))
 
 
-;; FIXME: Implement Clojure map -> Kuzu STRUCT! And/or Seq -> LIST!
-(defn- clj->kuzu [v]
+;; FIXME: Implement Clojure map -> Lbug STRUCT! And/or Seq -> LIST!
+(defn- clj->lbug [v]
   (if (instance? Value v) v (Value. v)))
 
 
-;; NOTE: Kuzu *overwrites* contents of the `FlatTuple` on iterations
+;; NOTE: Lbug *overwrites* contents of the `FlatTuple` on iterations
 ;; with `.getNext` [1]! If you force the result seq *first* and only
 ;; look inside FlatTuple *after* that you will be dissappointed:
 ;;
@@ -104,9 +104,9 @@
 
 ;; As long as we dont invoke instance methods on Clojure values, we
 ;; need neither reflection nor type hints. The method `.getValue` of
-;; Kuzu `Value` is generic and effectivly always returns an `Object`
+;; Lbug `Value` is generic and effectivly always returns an `Object`
 ;; after type erasure. It is a blessing we dont need to go over all
-;; the Kuzu types & type IDs yet [1]:
+;; the Lbug types & type IDs yet [1]:
 ;;
 ;;   ^DataType data-type (.getDataType value)
 ;;   ^DataTypeID type-id (.getID data-type)
@@ -127,8 +127,8 @@
              values (for [i (range n)
                           :let [^Value value (.getValue tuple i)]]
                       (try
-                        (kuzu->clj value)
-                        ;; Some Kuzu Values are opaque:
+                        (lbug->clj value)
+                        ;; Some Lbug Values are opaque:
                         (catch Exception e value)))
              row (zipmap cols values)]
          (cons row (as-maps result)))))))
@@ -166,7 +166,7 @@
     ;; `Value` instances as is, do not wrap them.
     (instance? PreparedStatement statement)
     (let [value-map (into {} (for [[k v] kws]
-                               [(name k) (clj->kuzu v)]))
+                               [(name k) (clj->lbug v)]))
           results (.execute conn statement value-map)]
       (as-maps results))))
 
@@ -204,10 +204,10 @@
     ;; Otherwise return values cannot be printed outside of this
     ;; function.
 
-    ;; FIXME: This possibly illegal syntax breaks Kuzu/JVM runtime
-    ;; with SIGSEGV. Not an Exception or error message! Will we ever
-    ;; need to pass nodes or relations back? See GitHub Issue [1]. We
-    ;; leave it commented here.
+    ;; FIXME: This possibly illegal syntax breaks JVM runtime with
+    ;; SIGSEGV. Not an Exception or error message! Will we ever need
+    ;; to pass nodes or relations back? See GitHub Issue [1]. We leave
+    ;; it commented here.
     ;;
     ;; [1] https://github.com/kuzudb/kuzu/issues/5938
     #_(println
@@ -239,7 +239,7 @@
    {:a.name "Zhang", :f.since 2022, :b.name "Noura"})
 
   ;; // Create an empty on-disk database and connect to it
-  ;; Database db = new Database("example.kuzu");
+  ;; Database db = new Database("example.lbug");
   ;; Connection conn = new Connection(db);
   (do
     (def db (Database. ":memory:"))
@@ -303,14 +303,14 @@
 
   ;; Cypher has many types, noteably lists and maps, and several kinds
   ;; of types, see section "Types, lists and maps" of the OpenCypher
-  ;; spec [0]. Kuzu has LIST and STRUCT and a distinct MAP [2,3]. Some
-  ;; Kuzu values are opaque so that `.getValue` fails see `try/catch`
+  ;; spec [0]. Lbug has LIST and STRUCT and a distinct MAP [2,3]. Some
+  ;; Lbug values are opaque so that `.getValue` fails see `try/catch`
   ;; logic in `as-maps`. Do we want/need to convert them to Clojure
-  ;; maps?  Isn't Kuzu `Value` serializable to JSON?  If so, it must
+  ;; maps?  Isn't Lbug `Value` serializable to JSON?  If so, it must
   ;; be representable as Clojure map as well. See `ValueNodeUtil` &
   ;; `ValueRelUtil` [1], eventually.
   ;;
-  ;; Kuzu `STRUCT` is probably the best candidate to be represented as
+  ;; Lbug `STRUCT` is probably the best candidate to be represented as
   ;; a Clojure map.
   ;;
   ;; [0] https://github.com/opencypher/openCypher/blob/main/cip/0.baseline/openCypher9.pdf
@@ -336,7 +336,7 @@
   => (("REL" "(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)"))
 
   ;; FIXME: This likely illegal syntax. It used to crash JVM with Kuzu
-  ;; and still does crash LadabugDB with a SIGSEGV. Will we ever need
+  ;; and still does crash LadybugDB with a SIGSEGV. Will we ever need
   ;; to pass nodes or relations back?  According to OpenCypher docs,
   ;; `NODE`, `RELATIONSHIP` and `PATH` are "structural types"
   ;; that "can be returned from queries" but "cannot be used as
