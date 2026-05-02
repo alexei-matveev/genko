@@ -12,7 +12,7 @@
 ;; Lbug `Value` is a generic object, one needs to convert them to
 ;; `LbugList`, `LbugStruct` or `LbugMap` to use type specific
 ;; methods. ChatGPT after 45s thinking with me researching for hours
-;; to ask the right questions produce this recursive converter from
+;; to ask the right questions produced this recursive converter from
 ;; Lbug Values to Clojure objects.
 (defn- lbug->clj
   [^Value v]
@@ -353,6 +353,8 @@
   ;; FIXME: multiple returns or `.hasNextQueryResult`. This would be a
   ;; simplest example:
   (query conn "return 1 as x;") => ({:x 1})                ; OK
+  ;; Should this be an nested Seq like (({:x 1}), ({:y 2}))? Or how
+  ;; else are we going to represent "multiple returns"?
   (query conn "return 1 as x; return 2 as y;") => ({:x 1}) ; FAIL
 
   ;; Close and release the underlying resources. This method is
