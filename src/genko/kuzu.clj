@@ -1,12 +1,12 @@
 (ns genko.kuzu
-  (:import [com.kuzudb Database Connection
+  (:import [com.ladybugdb Database Connection
             QueryResult FlatTuple Value
             PreparedStatement
-            DataType DataTypeID KuzuList KuzuStruct KuzuMap]))
+            DataType DataTypeID LbugList LbugStruct LbugMap]))
 
 
 ;; Kuzu `Value` is a generic object, one needs to convert them to
-;; `KuzuList`, `KuzuStruct` or `KuzuMap` to use type specific
+;; `LbugList`, `LbugStruct` or `LbugMap` to use type specific
 ;; methods. ChatGPT after 45s thinking with me researching for hours
 ;; to ask the right questions produce this recursive converter from
 ;; Kuzu Values to Clojure objects.
@@ -20,7 +20,7 @@
     (cond
       ;; STRUCT -> Clojure map (keywordized keys)
       (= id DataTypeID/STRUCT)
-      (let [^KuzuStruct ks (KuzuStruct. v)
+      (let [^LbugStruct ks (LbugStruct. v)
             jmap (.toMap ks)] ;; returns java.util.Map<String, Value>
         (try
           (into {}
@@ -33,7 +33,7 @@
 
       ;; LIST -> vector
       (= id DataTypeID/LIST)
-      (let [^KuzuList kl (KuzuList. v)
+      (let [^LbugList kl (LbugList. v)
             n (int (.getListSize kl))]
         (try
           (->> (range n)
@@ -44,7 +44,7 @@
       ;; MAP -> Clojure map (keys converted recursively, not
       ;; keywordized even if strings)
       (= id DataTypeID/MAP)
-      (let [^KuzuMap km (KuzuMap. v)
+      (let [^LbugMap km (LbugMap. v)
             n (int (.getNumFields km))]
         (try
           (into {}

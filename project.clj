@@ -21,9 +21,16 @@
                  ;; full-text search built in. Implements Cypher
                  ;; dialect. Kuzu JAR is about 100M as of 0.11.2.
                  ;;
+                 ;;     [com.kuzudb/kuzu "0.11.2"]
+                 ;;
+                 ;; Kuzu was bought (aquihired?) by Apple.  Migrating
+                 ;; to Ladybug [3]. At first intentionally to an early
+                 ;; Version.
+                 ;;
                  ;; [1] https://github.com/kuzudb/kuzu
                  ;; [2] https://docs.kuzudb.com/installation/
-                 [com.kuzudb/kuzu "0.11.2"]]
+                 ;; [3] https://github.com/LadybugDB/ladybug
+                 [com.ladybugdb/lbug "0.12.2"]]
   :main genko.main
   :aot :all
   :repl-options {:init-ns genko.main})
